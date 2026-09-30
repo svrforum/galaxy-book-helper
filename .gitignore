@@ -1,0 +1,29 @@
+bin/
+bin-next/
+obj/
+artifacts/
+.tools/
+*.user
+
+# Local diagnostics, development identities and signing material
+*.pfx
+*.p12
+*.pem
+*.key
+*.cer
+*.etl
+*.evtx
+*.dmp
+*.log
+.env
+.env.*
+!.env.example
+driver/TEST-MODE-NEXT.ko.md
+# Fetch hash-pinned upstream modules instead of committing binaries
+dependencies/pawnio/*.bin
+__pycache__/
+*.pyc
+*.pyo
+*.exe
+*.sys
+*.cat

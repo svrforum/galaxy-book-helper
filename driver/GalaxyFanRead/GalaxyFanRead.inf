@@ -1,0 +1,60 @@
+; Research-only extension. Requires validated binary, signing and deployment review.
+; Keeps the Samsung base driver. Does not overwrite UpperFilters registry lists.
+[Version]
+Signature = "$WINDOWS NT$"
+Class = Extension
+ClassGuid = {e2f84ce7-8efa-411c-aa69-97454ca4cb57}
+ExtensionId = {2ca9b1f1-cd65-473e-bd0e-d975a82692b0}
+Provider = %Provider%
+DriverVer = 09/27/2026,0.1.3.0
+CatalogFile = GalaxyFanRead.cat
+PnpLockdown = 1
+
+[Manufacturer]
+%Provider% = Models,NTamd64.10.0...22000
+
+[Models.NTamd64.10.0...22000]
+%DeviceDescription% = FanInstall,ACPI\SAM0430
+
+[FanInstall.NT]
+CopyFiles = DriverFiles
+
+[FanInstall.NT.Services]
+AddService = GalaxyFanRead,0,ServiceInstall
+
+[FanInstall.NT.Filters]
+AddFilter = GalaxyFanRead,,FilterInstall
+
+[FilterInstall]
+FilterPosition = Upper
+
+[FanInstall.NT.Wdf]
+KmdfService = GalaxyFanRead,WdfInstall
+
+[WdfInstall]
+KmdfLibraryVersion = 1.31
+
+[ServiceInstall]
+DisplayName = %ServiceDescription%
+ServiceType = 1
+StartType = 3
+ErrorControl = 1
+ServiceBinary = %13%\GalaxyFanRead.sys
+
+[DestinationDirs]
+DriverFiles = 13
+
+[DriverFiles]
+GalaxyFanRead.sys
+
+[SourceDisksNames]
+1 = %DiskDescription%,,,
+
+[SourceDisksFiles]
+GalaxyFanRead.sys = 1
+
+[Strings]
+Provider = "Galaxy Helper Research"
+DeviceDescription = "Galaxy Book6 PAMB fan read-only research filter"
+ServiceDescription = "Galaxy fan ACPI read-only probe"
+DiskDescription = "Galaxy fan research driver"

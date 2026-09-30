@@ -1,0 +1,22 @@
+name: Windows build and offline tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  app:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch pinned upstream modules
+        shell: pwsh
+        run: ./tools/Fetch-PawnModules.ps1
+      - name: Build
+        shell: pwsh
+        run: ./build.ps1 -OutputDirectory bin-next
+      - name: Offline protocol and control tests (no hardware access)
+        shell: pwsh
+        run: |
+          & ./bin-next/GalaxyHardware.exe self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Offline tests failed.' }
