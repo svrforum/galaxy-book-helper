@@ -12,6 +12,7 @@ namespace GalaxyHardware
         FanCalibration inlineProfile;
         string savedCurveSignature;
         readonly Label curveSelection=new Label();
+        readonly NumericUpDown curveTemperature=new NumericUpDown(),curveRpm=new NumericUpDown(),curveCutoff=new NumericUpDown();
         bool fanReadInFlight;
         Action afterFanRead;
         readonly ToolTip detailsTip=new ToolTip {AutoPopDelay=15000};
@@ -54,24 +55,32 @@ namespace GalaxyHardware
         void BuildInlineCurve(FlowLayoutPanel parent)
         {
             try {
-                inlineProfile=FanCalibration.Load();
-                var curve=FanCurve.Load(inlineProfile);
+                inlineProfile=previewCalibration??FanCalibration.Load();
+                var curve=previewCalibration==null?FanCurve.Load(inlineProfile):FanCurve.Default(inlineProfile);
+                inlineGraph=new CurveGraph(curve,inlineProfile){Width=488,Height=190,Margin=new Padding(0,0,0,6)};
                 savedCurveSignature=curve.Signature;
-                inlineGraph=new CurveGraph(curve,inlineProfile){Width=488,Height=170,Margin=new Padding(0,0,0,6)};
-                var presets=Row();
-                foreach(string name in new[]{"0 RPM","극저소음","최적화","평균","냉각 우선"}) {
-                    string preset=name;presets.Controls.Add(QuickButton(preset,91,delegate {inlineGraph.SetPreset(preset);fanControlStatus.Text=preset=="0 RPM"?"0 RPM 선택 · 적용 시 전력 5 / 10W도 함께 설정":"프리셋 선택 · 적용을 누르면 반영됩니다.";}));
-                }
-                parent.Controls.Add(presets);
+                BuildPresetRow(parent);
                 parent.Controls.Add(inlineGraph);
-                var row=Row();row.Height=31;
-                curveSelection.Width=185;curveSelection.Padding=new Padding(0,4,0,0);curveSelection.ForeColor=Color.LightSteelBlue;row.Controls.Add(curveSelection);
-                var input=new NumericUpDown {Minimum=FanCurve.Round(inlineProfile.Entries[0].ConservativeRpm),Maximum=FanCurve.Round(inlineProfile.Entries[2].ConservativeRpm),Increment=50};Number(input,90);row.Controls.Add(input);
-                var unit=new Label {Width=185,Padding=new Padding(0,4,0,0),ForeColor=Color.LightSlateGray};row.Controls.Add(unit);parent.Controls.Add(row);
+                var row=Row();row.Height=32;
+                curveSelection.Width=43;curveSelection.Padding=new Padding(0,4,0,0);curveSelection.ForeColor=Color.LightSteelBlue;row.Controls.Add(curveSelection);
+                curveTemperature.Minimum=20;curveTemperature.Maximum=90;curveTemperature.Increment=1;Number(curveTemperature,61);curveTemperature.AccessibleName="선택점 온도";row.Controls.Add(curveTemperature);
+                row.Controls.Add(new Label {Text="°C",Width=22,Padding=new Padding(0,4,0,0)});
+                curveRpm.Minimum=0;curveRpm.Maximum=FanCurve.Round(inlineProfile.Entries[2].ConservativeRpm);curveRpm.Increment=50;Number(curveRpm,82);curveRpm.AccessibleName="선택점 RPM";row.Controls.Add(curveRpm);
+                row.Controls.Add(new Label {Text="RPM",Width=36,Padding=new Padding(0,4,0,0)});
+                row.Controls.Add(new Label {Text="정지 해제",Width=67,Padding=new Padding(0,4,0,0),ForeColor=Color.LightSlateGray});
+                curveCutoff.Minimum=45;curveCutoff.Maximum=90;curveCutoff.Value=90;Number(curveCutoff,56);curveCutoff.AccessibleName="팬 정지 해제 온도";row.Controls.Add(curveCutoff);
+                row.Controls.Add(new Label {Text="°C",Width=22,Padding=new Padding(0,4,0,0)});parent.Controls.Add(row);
                 bool syncing=false;
-                Action changed=delegate {syncing=true;input.Minimum=0;input.Maximum=10000;input.Minimum=curve.IsZeroHold?45:FanCurve.Round(inlineProfile.Entries[0].ConservativeRpm);input.Maximum=curve.IsZeroHold?90:FanCurve.Round(inlineProfile.Entries[2].ConservativeRpm);input.Increment=curve.IsZeroHold?1:50;input.Value=curve.IsZeroHold?curve.ZeroStopTemperature:curve.Rpms[inlineGraph.Selected];curveSelection.Text=curve.IsZeroHold?"팬 정지 해제 온도":curve.Temperatures[inlineGraph.Selected]+"°C에서 목표";unit.Text=curve.IsZeroHold?"°C · 도달하면 자동 냉각":"RPM · 이웃 점 함께 조정";syncing=false;curveButton.Text=curve.IsZeroHold?"0 RPM + 5/10W 적용":curve.Signature==savedCurveSignature?"커브 적용":"변경한 커브 적용";};
-                inlineGraph.SelectionChanged+=changed;input.ValueChanged+=delegate {if(!syncing){if(curve.IsZeroHold)inlineGraph.SetZeroTemperature((int)input.Value);else inlineGraph.SetRpm((int)input.Value);}};changed();
-                Line(parent,new Label {Text="0 RPM은 5/10W 연동 · 온도 도달 후 자동 정지 재진입 없음",ForeColor=Color.LightSlateGray},20);
+                Action changed=delegate {
+                    syncing=true;curveSelection.Text="점 "+(inlineGraph.Selected+1);curveTemperature.Value=curve.Temperatures[inlineGraph.Selected];curveRpm.Value=curve.Rpms[inlineGraph.Selected];curveCutoff.Value=curve.ZeroStopTemperature;curveCutoff.Enabled=curve.HasZero;syncing=false;
+                    curveButton.Text=curve.HasZero?"커브 + 5/10W 적용":curve.Signature==savedCurveSignature?"커브 적용":"변경한 커브 적용";
+                };
+                inlineGraph.SelectionChanged+=changed;
+                curveTemperature.ValueChanged+=delegate {if(!syncing)inlineGraph.SetPoint((int)curveTemperature.Value,curve.Rpms[inlineGraph.Selected]);};
+                curveRpm.ValueChanged+=delegate {if(!syncing)inlineGraph.SetRpm((int)curveRpm.Value);};
+                curveCutoff.ValueChanged+=delegate {if(!syncing)inlineGraph.SetZeroTemperature((int)curveCutoff.Value);};changed();
+                Line(parent,new Label {Text="드래그: 온도·RPM  /  Shift: 전체 이동  /  Ctrl+Z: 취소",ForeColor=Color.LightSlateGray},20);
+                Line(parent,new Label {Text="실선: 요청 · 점선: 기기 지원 속도 (0 또는 약 "+Math.Max(inlineProfile.Entries[0].Fan1Peak,inlineProfile.Entries[0].Fan2Peak)+" RPM 이상)",ForeColor=Color.LightSlateGray},20);
             } catch(Exception ex) {
                 inlineGraph=null;Line(parent,new Label {Text="커브를 사용하려면 RPM 보정이 필요합니다.\n"+ex.Message,ForeColor=Color.LightSteelBlue},70);
             }
@@ -80,7 +89,7 @@ namespace GalaxyHardware
         {
             if(inlineGraph==null) return;
             try {
-                if(inlineGraph.Curve.IsZeroHold && !FanControlClient.IsZeroHoldReady())throw new IOException("0 RPM 유지 드라이버 적용 대기입니다. Windows 재시작 후 적용해 주세요.");
+                if(inlineGraph.Curve.HasZero && !FanControlClient.IsZeroHoldReady())throw new IOException("0 RPM 유지 드라이버 적용 대기입니다. Windows 재시작 후 적용해 주세요.");
                 inlineGraph.Curve.Save(inlineProfile);savedCurveSignature=inlineGraph.Curve.Signature;StartCurve();
             }
             catch(Exception ex){NotifyError(ex.Message);}

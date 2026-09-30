@@ -20,3 +20,12 @@ jobs:
         run: |
           & ./bin-next/GalaxyHardware.exe self-test
           if ($LASTEXITCODE -ne 0) { throw 'Offline tests failed.' }
+      - name: Fan editor mouse, numeric input, and preset persistence tests
+        shell: pwsh
+        run: |
+          $report = Join-Path $env:RUNNER_TEMP 'editor-tests.json'
+          $app = Start-Process ./bin-next/GalaxyHelper.exe -ArgumentList "--editor-self-test $report" -Wait -PassThru
+          if ($app.ExitCode -ne 0) { throw 'Editor test process failed.' }
+          $result = Get-Content $report -Raw | ConvertFrom-Json
+          if (!$result.Success) { throw 'Editor tests failed.' }
+          $result | ConvertTo-Json -Depth 4

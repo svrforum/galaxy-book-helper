@@ -172,6 +172,23 @@ namespace GalaxyHardware
             Assert(BitConverter.ToUInt32(hold,0)==2 && BitConverter.ToUInt32(hold,20)==(90U<<16));
             Reject(()=>FanControlClient.EncodeZeroHold(1,44,1,91,DateTime.UtcNow));Reject(()=>FanControlClient.EncodeZeroHold(1,44,1,44,DateTime.UtcNow));Reject(()=>FanControlClient.EncodeZeroHold(1,44,0,90,DateTime.UtcNow));
             passed.Add("zero hold protocol is versioned and rejects out-of-range cutoff and Auto encoding");
+            var free=FanCurve.Default(profile);int beforeMigration=free.At(45);free.UpgradeForEditing(profile);Assert(free.Rpms.Length==8 && free.At(45)==beforeMigration);
+            string signature=free.Signature;free.EditKnot(2,43,1000,profile);Assert(free.Temperatures[2]==43 && free.Rpms[2]==1000 && free.Signature!=signature);
+            free.EditKnot(2,89,0,profile);free.Validate(profile);Assert(free.Temperatures[2]==85 && free.Temperatures[7]==90 && free.Rpms[2]==0);
+            passed.Add("free XY editor migrates legacy shape, accepts low RPM and adjusts neighbors without crossing temperature bounds");
+            var mixed=FanCurve.Preset(profile,"0 RPM");mixed.UpgradeForEditing(profile);mixed.EditKnot(4,60,1000,profile);
+            Assert(mixed.At(49)==0 && mixed.At(55)==500 && mixed.SelectStep(55,profile)==1);Reject(()=>mixed.At(80));
+            var mixedPolicy=new FanCurvePolicy(profile,mixed,45);
+            var mixedState=new FanControlState {State=1,Status=0,Step=0,ZeroLimitC=90,TemperatureC=55,MaxStep=3,Fan1Rpm=0,Fan2Rpm=0};
+            Assert(mixedPolicy.Observe(mixedState,timestamp)==1);
+            mixedState.Step=1;mixedState.ZeroLimitC=0;mixedState.TemperatureC=45;
+            Assert(mixedPolicy.Observe(mixedState,timestamp.AddSeconds(1))==1);
+            Assert(mixedPolicy.Observe(mixedState,timestamp.AddSeconds(10))==1);
+            Assert(mixedPolicy.Observe(mixedState,timestamp.AddSeconds(11))==0);
+            passed.Add("mixed curve starts rotation immediately and returns to zero only after cooling hysteresis; low targets map to supported minimum");
+            var random=new Random(42);
+            for(int i=0;i<500;i++){free.EditKnot(random.Next(8),random.Next(-50,140),random.Next(-1000,6000),profile);free.Validate(profile);free.ShiftRpm(random.Next(-800,800),profile);free.Validate(profile);}
+            passed.Add("500 arbitrary XY edits and whole-curve shifts preserve ordering and ranges");
             return new { Passed = passed.Count, Cases = passed, HardwareAccess = false, Scope = "Offline protocol and control-policy checks; no live hardware verification performed by this command" };
         }
     }

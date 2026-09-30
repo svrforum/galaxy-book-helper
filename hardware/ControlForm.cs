@@ -20,7 +20,7 @@ namespace GalaxyHardware
         readonly Label measured = new Label();
         readonly Label limits = new Label();
         readonly Label mmioLimits = new Label();
-        readonly Label status = new Label();
+        readonly Label status = new SingleLineStatus();
         readonly Label fanReading = new Label();
         readonly Button fanRefresh = new Button();
         readonly Button fanApply = new Button(), fanAuto = new Button(), fanCap = new Button();
@@ -34,7 +34,7 @@ namespace GalaxyHardware
         FanCurvePolicy fanCurvePolicy;
         int? fanGoal;
         bool fanReady;
-        readonly Label fanControlStatus = new Label();
+        readonly Label fanControlStatus = new SingleLineStatus();
         bool fanBusy;
         readonly Button apply = new Button();
         readonly Button restore = new Button();
@@ -47,8 +47,10 @@ namespace GalaxyHardware
         bool busy;
         bool readingHealthy;
         bool hardwareDisposed;
-        public ControlForm(bool layoutPreview=false)
+        readonly FanCalibration previewCalibration;
+        public ControlForm(bool layoutPreview=false,FanCalibration calibration=null)
         {
+            previewCalibration=layoutPreview?calibration:null;
             if(layoutPreview) {
                 smokeMode=true;BuildCompactUi();tray.Visible=false;
                 measured.Text="— W   ·   — °C";fanReading.Text="팬 1  — RPM    /    팬 2  — RPM\n화면 미리보기 · 센서 연결 없음";
@@ -178,7 +180,8 @@ namespace GalaxyHardware
                 }
                 if(fanCurvePolicy!=null) {
                     fanStep=fanCurvePolicy.Observe(state,DateTime.UtcNow);
-                    fanControlStatus.Text="커브 작동 중 · "+state.TemperatureC+"°C → 목표 "+fanCurvePolicy.Target+" RPM";
+                    int supported=fanStep==0?0:Math.Max(fanCalibration.Entries[fanStep-1].Fan1Peak,fanCalibration.Entries[fanStep-1].Fan2Peak);
+                    fanControlStatus.Text="커브 적용 중 · 요청 "+fanCurvePolicy.Target+" → 지원 약 "+supported+" RPM";
                 }
             } catch (Exception ex) { StopFan(); fanControlStatus.Text=ex.Message + "\n자동 복귀 요청 · 원인 확인 후 다시 적용하세요."; FanButtons(); }
         }
@@ -286,6 +289,7 @@ namespace GalaxyHardware
             var check=new System.Windows.Forms.Timer { Interval=250 };
             var elapsed=Stopwatch.StartNew();
             var rows=new System.Collections.Generic.List<FanControlState>();
+            var powerRows=new System.Collections.Generic.List<object>();
             int phase=0; double started=0, sampled=0;
             ulong original=msr.ReadMsr(0x610);
             check.Tick += delegate {
@@ -301,11 +305,14 @@ namespace GalaxyHardware
                         if(zeroTest) {PreviewZeroCurve();curveButton.PerformClick();}
                         else if(curveTest) {
                             if(inlineGraph==null) throw new IOException("Inline curve is unavailable.");
+                            inlineGraph.SetPreset("평균");
                             inlineGraph.Selected=3;int originalRpm=inlineGraph.Curve.Rpms[3];
+                            curveTemperature.Value=52;
                             int candidate=originalRpm<inlineGraph.Curve.Rpms[4] ? originalRpm+50 : originalRpm-50;
                             inlineGraph.SetRpm(candidate);
                             inlineGraph.SetRpm(originalRpm);
                             curveButton.PerformClick();
+                            if(FanCurve.Load(fanCalibration??inlineProfile).Temperatures[3]!=52)throw new IOException("Edited temperature was not saved for application.");
                         } else ((ToolStripMenuItem)quickMenu.Items[3]).DropDownItems[2].PerformClick();
                         phase=2;
                     } else if (phase==2 && !fanBusy) {
@@ -317,6 +324,7 @@ namespace GalaxyHardware
                             var state=FanControlClient.Read();
                             if (!state.Manual || (!curveTest && state.Step!=2) || (curveTest && fanCurvePolicy==null) || (DateTime.UtcNow-state.SampleUtc).TotalSeconds>3) throw new IOException("UI manual state not confirmed.");
                             rows.Add(state); sampled=elapsed.Elapsed.TotalSeconds;
+                            powerRows.Add(new {SampleUtc=DateTime.UtcNow,Raw=msr.ReadMsr(0x610).ToString("X16"),Expected=expected.ToString("X16"),Status=status.Text});
                         }
                         if (elapsed.Elapsed.TotalSeconds-started>=(zeroTest?60:(curveTest?45:20))) {
                             var state=FanControlClient.Read();
@@ -334,16 +342,18 @@ namespace GalaxyHardware
                         PopulateQuickMenu(); ((ToolStripMenuItem)quickMenu.Items[2]).DropDownItems[3].PerformClick();
                         bool powerRestored=msr.ReadMsr(0x610)==original && !File.Exists(Program.Journal);
                         if (!powerRestored) throw new IOException("UI power restoration not confirmed.");
-                        File.WriteAllText(image+".json",new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(new {Success=true,CurveMode=curveTest,ZeroHoldMode=zeroTest,PowerRestored=powerRestored,Samples=rows,Auto=state}));
+                        File.WriteAllText(image+".json",new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(new {Success=true,CurveMode=curveTest,ZeroHoldMode=zeroTest,PowerRestored=powerRestored,AppliedCurve=curveTest?inlineGraph.Curve:null,Samples=rows,PowerSamples=powerRows,Auto=state}));
                         check.Stop(); check.Dispose(); Close();
                     }
                 } catch (Exception ex) {
                     check.Stop();
                     string error=ex.Message;
+                    string failedPower=null;try {failedPower=msr.ReadMsr(0x610).ToString("X16");}catch(Exception readError){failedPower=readError.Message;}
+                    string failedStatus=status.Text;
                     try { if (fanClient!=null) fanClient.Restore(); } catch (Exception restoreError) { error+=" Fan restore: "+restoreError.Message; }
                     StopFan();
                     try { if (ownsSetting) Restore(); } catch (Exception restoreError) { error+=" Power restore: "+restoreError.Message; }
-                    File.WriteAllText(image+".json",new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(new {Success=false,Error=error,Samples=rows}));
+                    File.WriteAllText(image+".json",new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(new {Success=false,Error=error,FailedPower=failedPower,FailedStatus=failedStatus,Samples=rows,PowerSamples=powerRows}));
                     check.Dispose(); Close();
                 }
             };
@@ -376,6 +386,7 @@ namespace GalaxyHardware
             if (disposing && !hardwareDisposed)
             {
                 hardwareDisposed = true; StopFan(); fanTimer.Dispose(); timer.Dispose(); tray.Dispose();
+                detailsTip.Dispose();
                 if (mmio != null) mmio.Dispose(); if(msr!=null) msr.Dispose();
             }
             base.Dispose(disposing);
@@ -389,6 +400,7 @@ namespace GalaxyHardware
             Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
             try
             {
+                if(args.Length==2 && args[0]=="--editor-self-test") {File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(EditorSelfTests.Run()));return 0;}
                 if(args.Length==2 && (args[0]=="--layout-preview" || args[0]=="--zero-layout-preview")) {
                     using(var preview=new ControlForm(true)) using(var capture=new System.Windows.Forms.Timer {Interval=600}) {
                         if(args[0]=="--zero-layout-preview")preview.PreviewZeroCurve();

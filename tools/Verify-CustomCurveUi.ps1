@@ -18,12 +18,16 @@ try {
   Stop-Process -Id $app.Id
   $app.WaitForExit()
  }
- $shot=Join-Path $root 'artifacts/zero-hold-ui-live.png'
- $p=Start-Process (Join-Path $root 'bin-next/GalaxyHelper.exe') -ArgumentList "--ui-zero-smoke $shot" -PassThru -Wait
- if($p.ExitCode -ne 0){throw 'UI test process failed.'}
- $test=Get-Content "$shot.json" -Raw -Encoding UTF8|ConvertFrom-Json
- $result.Test=$test
- if(!$test.Success){throw $test.Error}
+ $result.Tests=@()
+ foreach($mode in @('zero','curve')) {
+  $shot=Join-Path $root ('artifacts/free-curve-'+$mode+'-live.png')
+  $arg=if($mode -eq 'zero'){'--ui-zero-smoke'}else{'--ui-curve-smoke'}
+  $p=Start-Process (Join-Path $root 'bin-next/GalaxyHelper.exe') -ArgumentList "$arg $shot" -PassThru -Wait
+  if($p.ExitCode -ne 0){throw 'UI test process failed.'}
+  $test=Get-Content "$shot.json" -Raw -Encoding UTF8|ConvertFrom-Json
+  $result.Tests+=@{Mode=$mode;Report=$test}
+  if(!$test.Success){throw ($mode+': '+$test.Error)}
+ }
  if(Test-Path "$env:LOCALAPPDATA/GalaxyHelper/rapl-recovery.json"){throw 'Power recovery pending.'}
  if((Get-ItemPropertyValue $key FanControlNeedsRestore) -ne 0){throw 'Fan recovery pending.'}
  $layout=Get-Content "$shot.layout.json" -Raw -Encoding UTF8|ConvertFrom-Json
@@ -37,5 +41,5 @@ try {
 } catch {$result.Error=$_.Exception.Message}
 finally {
  if($existed){[IO.File]::WriteAllBytes($curve,$saved)}elseif(Test-Path $curve){Remove-Item -LiteralPath $curve}
- $result|ConvertTo-Json -Depth 10|Set-Content artifacts/zero-hold-live-verification.json -Encoding UTF8
+ $result|ConvertTo-Json -Depth 10|Set-Content artifacts/free-curve-live-verification.json -Encoding UTF8
 }

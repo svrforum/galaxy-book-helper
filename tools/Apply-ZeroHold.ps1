@@ -8,7 +8,7 @@ $existed=Test-Path $curve;$saved=if($existed){[IO.File]::ReadAllBytes($curve)}el
 try {
  if(Get-Process GalaxyHelper,GalaxyHardware -ErrorAction SilentlyContinue){throw 'Exit the existing app using restore and exit.'}
  & ./driver/Install-FanZeroHold.ps1
- $install=Get-Content artifacts/driver-fanzero-hold-install-result.json -Raw|ConvertFrom-Json
+ $install=Get-Content artifacts/driver-fanzero-hold-install-result.json -Raw -Encoding UTF8|ConvertFrom-Json
  if(!$install.Success){throw 'Driver installation did not complete.'}
  $state=Get-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Services\GalaxyFanRead\Parameters
  $ready=($null -ne $state.FanZeroHoldReadyTime -and $state.FanZeroHoldReadyTime -eq $state.FanControlReadyTime)
@@ -17,7 +17,7 @@ try {
   $shot=Join-Path $root 'artifacts/zero-hold-ui-live.png'
   $p=Start-Process (Join-Path $root 'bin-next/GalaxyHelper.exe') -ArgumentList "--ui-zero-smoke $shot" -PassThru -Wait
   if($p.ExitCode -ne 0){throw 'Zero UI smoke process failed.'}
-  $test=Get-Content "$shot.json" -Raw|ConvertFrom-Json
+  $test=Get-Content "$shot.json" -Raw -Encoding UTF8|ConvertFrom-Json
   $result.LiveTest=$test
   if(!$test.Success){throw ('Zero UI smoke failed: '+$test.Error)}
  }
