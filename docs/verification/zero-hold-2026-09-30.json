@@ -1,0 +1,21 @@
+{
+  "HoldDurationSeconds": 60,
+  "LayoutPassed": true,
+  "Date": "2026-09-30",
+  "Success": true,
+  "DriverVersion": "0.5.0.0",
+  "PL2Watts": 10,
+  "Method": "Actual UI preset selection and apply; kernel v2 control",
+  "FanAutoRestored": true,
+  "CpuTemperatureMaximumC": 53.0,
+  "CutoffC": 90,
+  "PowerRestored": true,
+  "SampleCount": 58,
+  "PL1Watts": 5,
+  "Limitations": [
+    "No deliberate heating to 90 C",
+    "No long-duration thermal stability qualification"
+  ],
+  "BothFansZeroSamples": 58,
+  "CpuTemperatureMinimumC": 41.0
+}
