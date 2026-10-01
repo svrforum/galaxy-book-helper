@@ -84,26 +84,37 @@ namespace GalaxyHardware
     sealed partial class ControlForm
     {
         readonly Button fanSetup=new SoftButton();
-        bool setupRunning,automaticSetupAttempted,automaticSetupQueued;
+        bool setupRunning,automaticSetupAttempted;
         DateTime lastSetupReadyCheck=DateTime.MinValue;
         internal bool CalibrationMissing()
         { try {FanCalibration.Load();return false;}catch {return true;} }
         void TryAutomaticFanSetup()
         {
-            if(smokeMode||automaticSetupAttempted||automaticSetupQueued||setupRunning||hardwareDisposed||!Visible||!IsHandleCreated)return;
-            if((DateTime.UtcNow-lastSetupReadyCheck).TotalSeconds<5)return;
-            lastSetupReadyCheck=DateTime.UtcNow;
-            if(!fanReady) {
-                try {fanReady=FanControlClient.IsReady();}catch{return;}
-                FanButtons();
-            }
-            if(!fanReady||fanBusy||busy)return;
-            if(!CalibrationMissing()) {automaticSetupAttempted=true;return;}
-            if(File.Exists(Program.Journal)) {
-                automaticSetupAttempted=true;fanControlStatus.Text="이전 전력 기록을 복원한 뒤 팬 설정을 시작하세요.";return;
-            }
-            automaticSetupQueued=true;
-            BeginInvoke(new Action(delegate {automaticSetupQueued=false;OpenFanSetup(true);}));
+            if(smokeMode||automaticSetupAttempted||setupRunning||hardwareDisposed||!Visible||!IsHandleCreated)return;
+            if(fanBusy||busy)return;
+            automaticSetupAttempted=true;fanBusy=true;lastSetupReadyCheck=DateTime.UtcNow;FanButtons();
+            fanControlStatus.Text="팬 준비 상태 확인 중 · 최대 15초 조회";
+            var worker=new BackgroundWorker();
+            worker.DoWork+=delegate(object sender,DoWorkEventArgs e) {
+                e.Result=FanStartupCheck.Run(FanControlClient.IsReady,delegate{return FanReadBridge.Request();},delegate{return !CalibrationMissing();});
+            };
+            worker.RunWorkerCompleted+=delegate(object sender,RunWorkerCompletedEventArgs e) {
+                if(!IsDisposed&&!Disposing) {
+                    fanBusy=false;lastFanPoll=DateTime.UtcNow;
+                    if(e.Error!=null)fanControlStatus.Text=e.Error.Message;
+                    else {
+                        var result=(FanStartupResult)e.Result;fanReady=result.DriverReady;
+                        if(result.Success) {
+                            ShowFan(result.Sample);
+                            fanControlStatus.Text=result.CalibrationUsable?"빠른 검사 완료 · 저장된 RPM 보정 사용 중":
+                                "빠른 검사 완료 · RPM 커브는 ‘정밀 보정’ 후 사용 가능합니다.";
+                        }else fanControlStatus.Text=result.Error;
+                    }
+                    FanButtons();
+                }
+                worker.Dispose();
+            };
+            worker.RunWorkerAsync();
         }
         void OpenFanSetup(bool automatic=false)
         {

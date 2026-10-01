@@ -61,6 +61,17 @@ jobs:
           path: |
             ${{ runner.temp }}/ui-preview/
             ${{ runner.temp }}/*tests.json*
+      - name: Build single EXE with embedded app and modules
+        shell: pwsh
+        run: ./packaging/Build-SingleExe.ps1 -AppDirectory bin-next -AppOnly
+      - name: Verify single EXE and reject damaged or incomplete payloads
+        shell: pwsh
+        run: ./tools/Test-SingleExe.ps1
+      - name: Upload single EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: GalaxyHelper-single-exe
+          path: artifacts/GalaxyHelper.exe
       - name: Package app for existing driver installations
         shell: pwsh
         run: |
