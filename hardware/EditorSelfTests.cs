@@ -22,6 +22,12 @@ namespace GalaxyHardware
         internal object CheckEditorInteractions(FanCalibration profile)
         {
             var passed=new List<string>();
+            powerPicker.SelectedIndex=1;EditorSelfTests.Assert(pl1.Value==5 && pl2.Value==10,"Power preset did not update sliders.");
+            pl1.Value=6;EditorSelfTests.Assert(powerPicker.SelectedIndex==0,"Edited power preset remained selected.");
+            string powerTest=Path.Combine(Path.GetTempPath(),"GalaxyPower-"+Guid.NewGuid().ToString("N")+".json");
+            try {var store=PowerPresetStore.Load(powerTest);store.Put("내 무소음",5,10);store.Save(powerTest);store=PowerPresetStore.Load(powerTest);EditorSelfTests.Assert(store.Items.Count==1 && store.Items[0].Burst==10,"Power preset reload failed.");store.Put("내 무소음",7.5m,12);store.Save(powerTest);EditorSelfTests.Assert(PowerPresetStore.Load(powerTest).Items[0].Sustained==7.5m && File.Exists(powerTest+".bak"),"Power preset overwrite failed.");bool rejected=false;try{store.Put("잘못된 값",20,10);}catch{rejected=true;}EditorSelfTests.Assert(rejected,"Invalid power pair accepted.");store.Items.Clear();store.Save(powerTest);EditorSelfTests.Assert(PowerPresetStore.Load(powerTest).Items.Count==0,"Power preset delete failed.");File.WriteAllText(powerTest,"{invalid");rejected=false;try{PowerPresetStore.Load(powerTest);}catch{rejected=true;}EditorSelfTests.Assert(rejected && File.ReadAllText(powerTest)=="{invalid","Corrupt power preset silently overwritten.");}
+            finally {if(File.Exists(powerTest))File.Delete(powerTest);if(File.Exists(powerTest+".bak"))File.Delete(powerTest+".bak");}
+            passed.Add("power preset selection, disk reload, overwrite backup, deletion and invalid-file preservation");
             using(var slider=new WattSlider("시험",pl1)){slider.ExerciseDrag(0);EditorSelfTests.Assert(pl1.Value==5,"Slider minimum failed.");slider.ExerciseDrag(340);EditorSelfTests.Assert(pl1.Value==80,"Slider maximum failed.");slider.ExerciseDrag(170);EditorSelfTests.Assert(pl1.Value==42.5m,"Slider half-watt mapping failed.");pl1.Value=15;}
             EditorSelfTests.Assert(curveDetails.Visible,"Curve must be visible by default.");passed.Add("power slider drag maps endpoints and half-watt increments; curve starts expanded");
             EditorSelfTests.Assert(PanelPosition(new System.Drawing.Rectangle(-1920,0,1920,1040),new System.Drawing.Size(560,740))==new System.Drawing.Point(-572,288),"Tray panel escaped secondary monitor bounds.");

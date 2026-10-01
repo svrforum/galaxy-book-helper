@@ -39,7 +39,7 @@ namespace GalaxyHardware
             measured.Font=new Font("Segoe UI",13);measured.ForeColor=accent;measured.TextAlign=ContentAlignment.MiddleRight;measured.Bounds=new Rectangle(194,0,244,38);header.Controls.Add(measured);stack.Controls.Add(header);
             Shown+=delegate {FitWithoutScroll(stack);};
             var power=Card(stack,"전력");
-            var presets=Row();presets.Controls.Add(QuickButton("절전   10 W",150,delegate {QuickPower(10,10);}));presets.Controls.Add(QuickButton("균형   15 / 20 W",162,delegate {QuickPower(15,20);}));presets.Controls.Add(QuickButton("성능   25 / 35 W",162,delegate {QuickPower(25,35);}));power.Controls.Add(presets);
+            BuildPowerPresets(power);
             Configure(pl1,15);Configure(pl2,20);Number(pl1,78);Number(pl2,78);
             var watts=new Panel {Width=488,Height=100,Margin=new Padding(0,4,0,4)};
             watts.Controls.Add(new WattSlider("지속 전력",pl1){Location=new Point(0,0),Font=Font});watts.Controls.Add(new WattSlider("단기 전력",pl2){Location=new Point(0,50),Font=Font});
