@@ -111,6 +111,7 @@ namespace GalaxyHardware
             quickMenu.Items.Add("온도 커브 편집",null,delegate {ShowPanel();EditCurve();}).Enabled=!fanBusy;
             quickMenu.Items.Add("정밀 팬 보정 및 검증…",null,delegate {OpenFanSetup();}).Enabled=fanReady&&!fanBusy&&!busy;
             quickMenu.Items.Add(new ToolStripSeparator());
+            AddStartupMenu();
             quickMenu.Items.Add("종료 및 설정 복원",null,delegate { exitRequested=true; Close(); });
         }
         void UpdateQuickState()

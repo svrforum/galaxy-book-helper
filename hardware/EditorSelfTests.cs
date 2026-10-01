@@ -22,6 +22,10 @@ namespace GalaxyHardware
         internal object CheckEditorInteractions(FanCalibration profile)
         {
             var passed=new List<string>();
+            string lastPath=Path.Combine(Path.GetTempPath(),"GalaxyApplied-"+Guid.NewGuid().ToString("N")+".json");
+            try {var saved=new AppliedSettings{Version=1,Pl1=5,Pl2=10,Curve=FanPresetStore.Copy(inlineGraph.Curve)};saved.Save(lastPath);var loaded=AppliedSettings.Load(lastPath);EditorSelfTests.Assert(loaded.Pl1==5 && loaded.Pl2==10 && loaded.Curve.Signature==saved.Curve.Signature,"Applied snapshot roundtrip failed.");loaded.Pl1=10;loaded.Save(lastPath);EditorSelfTests.Assert(File.Exists(lastPath+".bak"),"Applied snapshot backup missing.");File.WriteAllText(lastPath,"{bad");bool bad=false;try{AppliedSettings.Load(lastPath);}catch{bad=true;}EditorSelfTests.Assert(bad,"Invalid automatic settings accepted.");}
+            finally {if(File.Exists(lastPath))File.Delete(lastPath);if(File.Exists(lastPath+".bak"))File.Delete(lastPath+".bak");}
+            passed.Add("last applied power and curve snapshot persists, backs up and rejects corrupt settings");
             var nativeMode=new DisplayRefresh.Mode{Width=2880,Height=1800};EditorSelfTests.Assert(DisplayRefresh.SameRatio(nativeMode,new DisplayRefresh.Mode{Width=1920,Height=1200})&&!DisplayRefresh.SameRatio(nativeMode,new DisplayRefresh.Mode{Width=1920,Height=1080}),"Display aspect ratio filter failed.");EditorSelfTests.Assert(refreshPicker.Items.Cast<uint>().All(h=>h==60||h==120),"Unexpected refresh option.");passed.Add("display resolutions preserve exact aspect ratio and refresh list only shows 60/120 Hz");
             powerPicker.SelectedIndex=1;EditorSelfTests.Assert(pl1.Value==5 && pl2.Value==10,"Power preset did not update sliders.");
             pl1.Value=6;EditorSelfTests.Assert(powerPicker.SelectedIndex==0,"Edited power preset remained selected.");

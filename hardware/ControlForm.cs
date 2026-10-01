@@ -162,7 +162,7 @@ namespace GalaxyHardware
                 else {
                     if (fanCapPolicy!=null) fanCapPolicy.MarkStarted(DateTime.UtcNow);
                     fanControlStatus.Text="팬 설정 적용 완료 · 실제 속도 안정화 중";
-                    fanTimer.Start();
+                    fanTimer.Start();RememberApplied(false,fanCurvePolicy==null?null:fanCurvePolicy.Snapshot);
                 }
                 FanButtons(); worker.Dispose();
             };
@@ -206,7 +206,7 @@ namespace GalaxyHardware
                     fanControlStatus.Text=e.Error==null ? "팬 자동 제어 복귀 응답 확인" : "자동 복귀 확인 실패: " + e.Error.Message;
                     FanButtons();
                     var next=afterFanRestore; afterFanRestore=null;
-                    if(e.Error==null && next!=null) next();
+                    if(e.Error==null && next!=null) next();else if(e.Error==null)RememberApplied(false);
                 }
                 worker.Dispose();
             };
@@ -279,6 +279,7 @@ namespace GalaxyHardware
                     if (msr.ReadMsr(0x610) != expected) throw new IOException("적용 후 재조회 불일치");
                 }
                 catch { Program.Restore(msr); ownsSetting = false; throw; }
+                RememberApplied(true);
                 status.Text = "MSR 설정값 저장·재조회 완료. 실효는 위 실측 W를 확인하세요.\n앱 종료 시 복원합니다. 다른 값을 적용하려면 먼저 복원하세요.";
             }
             catch (Exception ex) { status.Text = "적용 실패: " + ex.Message; MessageBox.Show(this, status.Text, "Galaxy Helper", MessageBoxButtons.OK, MessageBoxIcon.Error); }
@@ -430,9 +431,10 @@ namespace GalaxyHardware
                 }
                 if (!(new WindowsPrincipal(WindowsIdentity.GetCurrent())).IsInRole(WindowsBuiltInRole.Administrator))
                 {
-                    if (args.Length != 0 && !(args.Length==1 && args[0]=="--show-zero")) throw new UnauthorizedAccessException("Smoke mode requires an elevated caller.");
-                    Process.Start(new ProcessStartInfo(Application.ExecutablePath,args.Length==1?"--show-zero":"") { UseShellExecute = true, Verb = "runas" }); return 0;
+                    if (args.Length != 0 && !(args.Length==1 && (args[0]=="--show-zero"||args[0]=="--startup"))) throw new UnauthorizedAccessException("Smoke mode requires an elevated caller.");
+                    Process.Start(new ProcessStartInfo(Application.ExecutablePath,args.Length==1?args[0]:"") { UseShellExecute = true, Verb = "runas" }); return 0;
                 }
+                if(args.Length==2 && args[0]=="--startup-task-test"){if(StartupTask.Enabled())throw new InvalidOperationException("Existing startup preference preserved; test skipped.");try{StartupTask.Set(true);if(!StartupTask.Enabled())throw new IOException("Task enable failed.");StartupTask.Set(false);if(StartupTask.Enabled())throw new IOException("Task disable failed.");File.WriteAllText(args[1],"{\"Success\":true,\"EnabledThenDisabled\":true,\"HardwareSettingsChanged\":false}");}finally{if(StartupTask.Enabled())StartupTask.Set(false);}return 0;}
                 bool owner;
                 using (var gate = new Mutex(true, "Global\\GalaxyHelper-Rapl", out owner))
                 {
@@ -441,7 +443,7 @@ namespace GalaxyHardware
                     {
                         using (var form = new ControlForm())
                         {
-                            form.smokeMode=args.Length!=0 && !(args.Length==1 && args[0]=="--show-zero");
+                            form.smokeMode=args.Length!=0 && !(args.Length==1 && (args[0]=="--show-zero"||args[0]=="--startup"));
                             if (args.Length == 2 && (args[0] == "--ui-smoke" || args[0] == "--ui-monitor-smoke"))
                             {
                                 using (var timer = new System.Windows.Forms.Timer { Interval = args[0]=="--ui-monitor-smoke" ? 30000 : 2500 })
@@ -453,6 +455,7 @@ namespace GalaxyHardware
                             else if (args.Length == 2 && args[0] == "--ui-control-smoke") { form.RunControlSmoke(args[1]); Application.Run(form); }
                             else if (args.Length == 2 && args[0] == "--ui-curve-smoke") { form.RunControlSmoke(args[1],true); Application.Run(form); }
                             else if (args.Length == 2 && args[0] == "--ui-zero-smoke") { form.RunControlSmoke(args[1],true,true); Application.Run(form); }
+                            else if (args.Length==1 && args[0]=="--startup") {form.ResumeAtLogon();Application.Run(form);}
                             else if (args.Length == 0) Application.Run(form);
                             else if (args.Length == 1 && args[0]=="--show-zero") {form.PreviewZeroCurve();Application.Run(form);}
                             else throw new ArgumentException("Unknown arguments");

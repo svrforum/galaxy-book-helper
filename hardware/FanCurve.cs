@@ -109,6 +109,7 @@ namespace GalaxyHardware
     {
         readonly FanCalibration profile; readonly FanCurve curve;
         DateTime lowerSince=DateTime.MinValue; int lowerCandidate; int peak;
+        internal FanCurve Snapshot {get{return FanPresetStore.Copy(curve);}}
         public int Step {get;private set;}
         public int Target {get;private set;}
         public int ZeroLimit {get {return curve.HasZero?curve.ZeroStopTemperature:0;}}
