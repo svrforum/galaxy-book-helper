@@ -120,6 +120,7 @@ namespace GalaxyHardware
         }
         void FanButtons()
         {
+            fanSetup.Enabled=fanReady && !fanBusy && !busy;
             curveButton.Enabled=inlineGraph!=null && fanReady && (!fanBusy || fanReadInFlight);
             fanApply.Enabled=fanCap.Enabled=fanReady && !fanBusy && fanClient==null;
             fanSteps.Enabled=fanTarget.Enabled=!fanBusy && fanClient==null;
@@ -222,6 +223,7 @@ namespace GalaxyHardware
         void RefreshReadings()
         {
             if (busy || hardwareDisposed) return;
+            TryAutomaticFanSetup();
             try
             {
                 ulong raw = msr.ReadMsr(0x610); int temperature = Program.Temperature(msr);
@@ -361,6 +363,7 @@ namespace GalaxyHardware
         }
         void ClosingForm(object sender, FormClosingEventArgs e)
         {
+            if(setupRunning) { e.Cancel=true;return; }
             if(e.CloseReason==CloseReason.UserClosing && !exitRequested && !smokeMode) { e.Cancel=true; Hide(); return; }
             StopFan();
             if (ownsSetting)
@@ -376,7 +379,7 @@ namespace GalaxyHardware
         }
         protected override void WndProc(ref Message message)
         {
-            if (message.Msg==0x218 && message.WParam.ToInt32()==4) StopFan();
+            if (message.Msg==0x218 && message.WParam.ToInt32()==4 && !setupRunning) StopFan();
             if (message.Msg == 0x218 && message.WParam.ToInt32() == 4 && ownsSetting)
             { try { Restore(); } catch (Exception ex) { status.Text = "절전 전 복원 실패: " + ex.Message; } }
             base.WndProc(ref message);
@@ -402,6 +405,7 @@ namespace GalaxyHardware
             {
                 if(args.Length==2 && args[0]=="--display-save-current"){File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(DisplayRefresh.SaveCurrent()));return 0;}
                 if(args.Length==2 && args[0]=="--display-check"){File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(DisplayRefresh.Inspect()));return 0;}
+                if(args.Length==2 && args[0]=="--setup-self-test") {File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(FanSetupSelfTests.Run()));return 0;}
                 if(args.Length==2 && args[0]=="--editor-self-test") {File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(EditorSelfTests.Run()));return 0;}
                 if(args.Length==2 && (args[0]=="--layout-preview" || args[0]=="--zero-layout-preview" || args[0]=="--tray-layout-preview")) {
                     using(var preview=new ControlForm(true)) using(var capture=new System.Windows.Forms.Timer {Interval=600}) {

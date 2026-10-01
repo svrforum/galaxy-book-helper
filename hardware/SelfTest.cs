@@ -189,6 +189,7 @@ namespace GalaxyHardware
             var random=new Random(42);
             for(int i=0;i<500;i++){free.EditKnot(random.Next(8),random.Next(-50,140),random.Next(-1000,6000),profile);free.Validate(profile);free.ShiftRpm(random.Next(-800,800),profile);free.Validate(profile);}
             passed.Add("500 arbitrary XY edits and whole-curve shifts preserve ordering and ranges");
+            passed.AddRange(FanSetupSelfTests.WorkflowCases());
             return new { Passed = passed.Count, Cases = passed, HardwareAccess = false, Scope = "Offline protocol and control-policy checks; no live hardware verification performed by this command" };
         }
     }

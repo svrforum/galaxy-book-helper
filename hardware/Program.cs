@@ -162,49 +162,60 @@ namespace GalaxyHardware
                 return new { Original = Limits(original, units), Requested = Limits(target, units), Baseline = baseline, Samples = rows, Restored = true, WithCpuLoad = withLoad, Scope = "MSR-only experiment; does not write MMIO or fan controls." };
             }
         }
-        static object VerifyFanWithReducedPower(bool targetOnly = false,bool zeroTrial = false)
+        internal static FanSetupResult VerifyFanWithReducedPower(bool targetOnly=false,bool zeroTrial=false,FanDiagnosticSession session=null)
         {
             CheckMachine();
-            if (File.Exists(Journal)) throw new IOException("Previous power recovery must be resolved first.");
-            if (!FanControlClient.IsReady()) throw new IOException("Continuous fan driver is not ready.");
-            if(zeroTrial && !FanControlClient.IsZeroReady()) throw new IOException("0 RPM verification driver is not active. No hardware settings changed.");
-            using (var device=new PawnDevice("IntelMSR")) {
-                ulong units=device.ReadMsr(0x606), original=device.ReadMsr(0x610);
-                double pl1=Math.Min(zeroTrial?5:10,Rapl.Pl1(original,units)), pl2=Math.Min(zeroTrial?5:10,Rapl.Pl2(original,units));
+            if(File.Exists(Journal))throw new IOException("먼저 이전 전력 설정을 복원하세요.");
+            if(!FanControlClient.IsReady())throw new IOException("팬 드라이버 적용 대기입니다. Windows 재시작 후 30초 기다려 주세요.");
+            if(zeroTrial && !FanControlClient.IsZeroReady())throw new IOException("0 RPM 검증 드라이버가 준비되지 않았습니다.");
+            session=session??new FanDiagnosticSession(CancellationToken.None);
+            session.DeferVerification=!zeroTrial;
+            session.Check();
+            using(var device=new PawnDevice("IntelMSR")) {
+                ulong units=device.ReadMsr(0x606),original=device.ReadMsr(0x610);
+                double pl1=Math.Min(zeroTrial?5:10,Rapl.Pl1(original,units)),pl2=Math.Min(zeroTrial?5:10,Rapl.Pl2(original,units));
                 ulong target=Rapl.EncodeReduction(original,units,pl1,pl2);
-                var power=new List<object>();
-                FanVerificationReport report=null;
-                string error=null; bool restored=false;
-                SaveNewJournal(new Recovery {Boot=Boot(),Original=original.ToString("X16"),Intended=target.ToString("X16"),Units=units.ToString("X16")});
-                try {
-                    if (device.ReadMsr(0x610)!=original) throw new IOException("Power limit changed before verification.");
+                var power=new List<object>();bool journalCreated=false;
+                var result=FanSetupWorkflow.Run(session,delegate {
+                    session.Report("임시 전력 제한 적용",0);
+                    SaveNewJournal(new Recovery {Boot=Boot(),Original=original.ToString("X16"),Intended=target.ToString("X16"),Units=units.ToString("X16")});
+                    journalCreated=true;
+                    if(device.ReadMsr(0x610)!=original)throw new IOException("적용 직전 전력 설정이 변경됐습니다.");
                     device.WritePackageLimit(target);
-                    if (device.ReadMsr(0x610)!=target) throw new IOException("Power write readback mismatch.");
-                    uint energy=(uint)device.ReadMsr(0x611); var clock=Stopwatch.StartNew();
+                    if(device.ReadMsr(0x610)!=target)throw new IOException("전력 설정 재조회 불일치");
+                },delegate {
+                    uint energy=(uint)device.ReadMsr(0x611);var clock=Stopwatch.StartNew();
                     FanControlDiagnostics.TestGuard=delegate {
-                        if ((device.ReadMsr(0x610)&Rapl.PowerMask)!=(target&Rapl.PowerMask)) throw new IOException("Power limits changed during verification.");
-                        if (clock.Elapsed.TotalSeconds>=0.25) {
-                            uint next=(uint)device.ReadMsr(0x611); double elapsed=clock.Elapsed.TotalSeconds;
+                        session.Check();
+                        if((device.ReadMsr(0x610)&Rapl.PowerMask)!=(target&Rapl.PowerMask))throw new IOException("검증 중 전력 제한이 변경됐습니다.");
+                        if(clock.Elapsed.TotalSeconds>=0.25) {
+                            uint next=(uint)device.ReadMsr(0x611);double elapsed=clock.Elapsed.TotalSeconds;
                             power.Add(new {TimestampUtc=DateTime.UtcNow,PackageWatts=Rapl.Watts(energy,next,units,elapsed),TemperatureC=Temperature(device)});
-                            energy=next; clock.Restart();
+                            energy=next;clock.Restart();
                         }
                     };
-                    var cooling=Stopwatch.StartNew();
-                    int threshold=zeroTrial?38:60;
-                    if(!zeroTrial) using(var cooler=new FanControlClient()) {
-                        try {
-                            if(zeroTrial && Temperature(device)>threshold) cooler.Start(3);
-                            while (Temperature(device)>threshold && cooling.Elapsed.TotalSeconds<90) {Thread.Sleep(1000);FanControlDiagnostics.TestGuard();if(cooler.Active)cooler.Heartbeat(3);}
-                        } finally {if(cooler.HasRequest)cooler.Restore();}
-                    }
-                    if (!zeroTrial && Temperature(device)>threshold) throw new IOException("CPU did not cool below "+threshold+" C; fan test not started.");
-                    report=zeroTrial ? ZeroFanDiagnostics.Verify() : (targetOnly ? FanControlDiagnostics.VerifyTargetOnly() : FanControlDiagnostics.VerifyAll());
-                } catch (Exception ex) { error=ex.Message; }
-                finally {
-                    FanControlDiagnostics.TestGuard=null;
-                    try { Restore(device); restored=true; } catch (Exception ex) { error=(error??"")+" Power restore: "+ex.Message; }
+                    try {
+                        if(!zeroTrial) {
+                            session.Begin("CPU가 60°C 이하로 식기를 기다리는 중",0,15);
+                            var cooling=Stopwatch.StartNew();
+                            while(Temperature(device)>60 && cooling.Elapsed.TotalSeconds<90) {
+                                session.Wait(1000);FanControlDiagnostics.TestGuard();session.Advance((int)cooling.Elapsed.TotalSeconds,90);
+                            }
+                            if(Temperature(device)>60)throw new IOException("CPU가 60°C 이하로 식지 않았습니다. 부하 작업을 닫고 다시 시작하세요.");
+                        }
+                        return zeroTrial?ZeroFanDiagnostics.Verify():(targetOnly?FanControlDiagnostics.VerifyTargetOnly(session):FanControlDiagnostics.VerifyAll(session));
+                    } finally { FanControlDiagnostics.TestGuard=null; }
+                },delegate {
+                    if(journalCreated)Restore(device);
+                });
+                result.OriginalPower=Limits(original,units);result.VerificationPower=Limits(target,units);result.PowerSamples=power;
+                if(result.Success && !zeroTrial) {
+                    try {
+                        var profile=FanCalibration.Load(false);profile.Verified=true;
+                        File.WriteAllText(FanCalibration.FilePath,new JavaScriptSerializer().Serialize(profile));
+                    } catch(Exception ex) { result.Success=false;result.Error="보정 결과 저장 실패: "+ex.Message; }
                 }
-                return new {Success=error==null && restored && report!=null && report.Success,Error=error,PowerRestored=restored,OriginalPower=Limits(original,units),VerificationPower=Limits(target,units),PowerSamples=power,Verification=report};
+                return result;
             }
         }
         static int Main(string[] args)

@@ -17,7 +17,7 @@ namespace GalaxyHardware
         readonly Color accent=Color.FromArgb(49,130,246);
         FlowLayoutPanel Card(FlowLayoutPanel parent,string title)
         {
-            var card=new RoundedCard {Width=520,AutoSize=true,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(14),BackColor=surface,Margin=new Padding(0,0,0,6)};
+            var card=new RoundedCard {Width=520,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(14),BackColor=surface,Margin=new Padding(0,0,0,6)};
             parent.Controls.Add(card);
             var heading=new Panel();heading.Controls.Add(new PictureBox {Image=PanelIcons.Draw(title=="전력"?"power":"fan",accent,18),Bounds=new Rectangle(0,1,18,18)});heading.Controls.Add(new Label {Text=title,ForeColor=Color.FromArgb(51,61,75),Font=new Font(Font,FontStyle.Bold),Bounds=new Rectangle(26,1,200,20)});Line(card,heading,24);
             return card;
@@ -47,10 +47,13 @@ namespace GalaxyHardware
             Style(apply,"적용",120);apply.BackColor=accent;apply.ForeColor=Color.White;apply.Location=new Point(362,9);watts.Controls.Add(apply);Style(restore,"원래대로",120);restore.Location=new Point(362,59);watts.Controls.Add(restore);power.Controls.Add(watts);
             status.ForeColor=Color.FromArgb(107,118,132);status.AutoEllipsis=true;Line(power,status,20);
             var fan=Card(stack,"팬 속도");fanReading.Font=new Font("Segoe UI",15,FontStyle.Bold);Line(fan,fanReading,36);
-            curveDetails=new FlowLayoutPanel {Width=488,AutoSize=true,FlowDirection=FlowDirection.TopDown,WrapContents=false,Margin=Padding.Empty};fan.Controls.Add(curveDetails);BuildInlineCurve(curveDetails);curveDetails.Visible=true;
+            curveDetails=new FlowLayoutPanel {Width=488,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,FlowDirection=FlowDirection.TopDown,WrapContents=false,Margin=Padding.Empty};fan.Controls.Add(curveDetails);BuildInlineCurve(curveDetails);curveDetails.Visible=true;
             var controls=Row();Style(curveButton,inlineGraph!=null && inlineGraph.Curve.IsZeroHold?"0 RPM + 5/10W 적용":"커브 적용",155);curveButton.BackColor=accent;curveButton.ForeColor=Color.White;curveButton.Click+=delegate {ApplyInlineCurve();};controls.Controls.Add(curveButton);
-            Style(fanAuto,"자동으로",160);controls.Controls.Add(fanAuto);Style(fanRefresh,"새로고침",145);controls.Controls.Add(fanRefresh);fan.Controls.Add(controls);
+            Style(fanAuto,"자동으로",115);controls.Controls.Add(fanAuto);Style(fanRefresh,"새로고침",88);controls.Controls.Add(fanRefresh);Style(fanSetup,"팬 설정",94);controls.Controls.Add(fanSetup);fan.Controls.Add(controls);
             fanControlStatus.ForeColor=Color.FromArgb(107,118,132);fanControlStatus.AutoEllipsis=true;Line(fan,fanControlStatus,24);
+            fanSetup.Click+=delegate {OpenFanSetup();};fanSetup.AccessibleName="팬 자동 보정 및 검증";
+            detailsTip.SetToolTip(fanSetup,"팬 단계 측정 · RPM 목표 유지 · 자동 복귀 검증 · 약 7~9분");
+            Shown+=delegate {if(!smokeMode)BeginInvoke(new Action(TryAutomaticFanSetup));};
             fanSteps.Minimum=1;fanSteps.Maximum=3;fanSteps.Value=2;
             fanTarget.Minimum=1000;fanTarget.Maximum=6500;fanTarget.Increment=100;fanTarget.Value=3400;Number(fanTarget,100);Style(fanCap,"고정 목표 적용",170);
             detailsTip.SetToolTip(curveButton,"일반 커브 80°C 보호 · 0 RPM은 지정 온도에서 자동 냉각");
@@ -106,6 +109,7 @@ namespace GalaxyHardware
             rpm.DropDownItems.Add("직접 입력…",null,delegate {ShowFixedTarget();});
             var curveItem=new ToolStripMenuItem("저장된 온도 커브 적용",null,delegate {StartCurve();}); curveItem.Enabled=fanReady&&!fanBusy;curveItem.Checked=fanClient!=null&&fanCurvePolicy!=null;quickMenu.Items.Add(curveItem);
             quickMenu.Items.Add("온도 커브 편집",null,delegate {ShowPanel();EditCurve();}).Enabled=!fanBusy;
+            quickMenu.Items.Add("팬 보정 및 검증…",null,delegate {OpenFanSetup();}).Enabled=fanReady&&!fanBusy&&!busy;
             quickMenu.Items.Add(new ToolStripSeparator());
             quickMenu.Items.Add("종료 및 설정 복원",null,delegate { exitRequested=true; Close(); });
         }
