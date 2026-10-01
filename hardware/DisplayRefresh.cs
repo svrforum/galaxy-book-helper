@@ -32,6 +32,18 @@ namespace GalaxyHardware
         [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern bool EnumDisplaySettings(string device,int index,ref Mode mode);
         [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int ChangeDisplaySettingsEx(string device,ref Mode mode,IntPtr window,uint flags,IntPtr param);
         internal static Mode Current(string device){var m=new Mode{Size=220};if(!EnumDisplaySettings(device,-1,ref m))throw new InvalidOperationException("현재 화면 모드를 읽을 수 없습니다.");return m;}
+        internal static Mode Saved(string device){var m=new Mode{Size=220};if(!EnumDisplaySettings(device,-2,ref m))throw new InvalidOperationException("저장된 화면 설정을 읽을 수 없습니다.");return m;}
+        internal static void Persist(string device,Mode mode)
+        {
+            var previous=Saved(device);mode.Fields=0x580000;
+            if(TestMode(device,mode)!=0)throw new InvalidOperationException("저장할 화면 설정을 Windows가 허용하지 않았습니다.");
+            // Persist only after the live change was verified/accepted.
+            int result=ChangeDisplaySettingsEx(device,ref mode,IntPtr.Zero,1,IntPtr.Zero);
+            if(result==0){var saved=Saved(device);if(saved.Width==mode.Width&&saved.Height==mode.Height&&saved.Hz==mode.Hz)return;}
+            previous.Fields=0x580000;int rollback=ChangeDisplaySettingsEx(device,ref previous,IntPtr.Zero,0x10000001,IntPtr.Zero);
+            throw new InvalidOperationException("화면 설정 저장 실패 ("+result+")"+(rollback==0?" · 이전 저장값 복원":" · 이전 저장값 복원 실패"));
+        }
+        internal static object SaveCurrent(){return Screen.AllScreens.Select(s=>{var mode=Current(s.DeviceName);Persist(s.DeviceName,mode);var saved=Saved(s.DeviceName);return new {Device=s.DeviceName,Width=saved.Width,Height=saved.Height,Hz=saved.Hz,Saved=true};}).ToArray();}
         internal static bool Compatible(Mode a,Mode b){return a.Width==b.Width&&a.Height==b.Height&&a.Bits==b.Bits&&a.Orientation==b.Orientation&&a.Flags==b.Flags&&a.FixedOutput==b.FixedOutput&&b.Hz>1;}
         internal static uint[] Rates(string device){var current=Current(device);var rates=new SortedSet<uint>();for(int i=0;i<4096;i++){var m=new Mode{Size=220};if(!EnumDisplaySettings(device,i,ref m))break;if(Compatible(current,m))rates.Add(m.Hz);}return rates.ToArray();}
         internal static int Test(string device,uint hz){var m=Current(device);if(!Rates(device).Contains(hz))throw new InvalidOperationException("현재 해상도에서 지원하지 않는 주사율입니다.");m.Hz=hz;m.Fields=0x400000;return ChangeDisplaySettingsEx(device,ref m,IntPtr.Zero,2,IntPtr.Zero);}
@@ -41,7 +53,7 @@ namespace GalaxyHardware
         internal static Mode ForResolution(string device,Resolution resolution){var current=Current(device);var matches=ResolutionModes(device).Where(m=>m.Width==resolution.Width&&m.Height==resolution.Height).OrderBy(m=>m.Hz==current.Hz?0:1).ThenBy(m=>m.Hz).ToArray();if(matches.Length==0)throw new InvalidOperationException("지원되지 않는 해상도입니다.");current.Width=matches[0].Width;current.Height=matches[0].Height;current.Hz=matches[0].Hz;current.Fields=0x580000;return current;}
         internal static int TestMode(string device,Mode mode){return ChangeDisplaySettingsEx(device,ref mode,IntPtr.Zero,2,IntPtr.Zero);}
         internal static void SetMode(string device,Mode mode){mode.Fields=0x580000;if(TestMode(device,mode)!=0)throw new InvalidOperationException("Windows가 화면 변경을 허용하지 않았습니다.");int result=ChangeDisplaySettingsEx(device,ref mode,IntPtr.Zero,0,IntPtr.Zero);if(result!=0)throw new InvalidOperationException("화면 변경 실패 ("+result+")");var current=Current(device);if(current.Width!=mode.Width||current.Height!=mode.Height||current.Hz!=mode.Hz)throw new InvalidOperationException("화면 변경 결과가 요청과 다릅니다.");}
-        internal static void Apply(string device,uint hz){if(Test(device,hz)!=0)throw new InvalidOperationException("Windows가 주사율 변경을 허용하지 않았습니다.");var original=Current(device);var m=original;m.Hz=hz;m.Fields=0x400000;int result=ChangeDisplaySettingsEx(device,ref m,IntPtr.Zero,0,IntPtr.Zero);if(result!=0)throw new InvalidOperationException("주사율 변경 실패 ("+result+")");var actual=Current(device);if(actual.Hz!=hz||actual.Width!=original.Width||actual.Height!=original.Height){original.Fields=0x400000;ChangeDisplaySettingsEx(device,ref original,IntPtr.Zero,0,IntPtr.Zero);throw new InvalidOperationException("변경 확인 실패 · 이전 주사율 복원을 요청했습니다.");}}
+        internal static void Apply(string device,uint hz){if(Test(device,hz)!=0)throw new InvalidOperationException("Windows가 주사율 변경을 허용하지 않았습니다.");var original=Current(device);var m=original;m.Hz=hz;m.Fields=0x400000;int result=ChangeDisplaySettingsEx(device,ref m,IntPtr.Zero,0,IntPtr.Zero);if(result!=0)throw new InvalidOperationException("주사율 변경 실패 ("+result+")");var actual=Current(device);if(actual.Hz!=hz||actual.Width!=original.Width||actual.Height!=original.Height){original.Fields=0x400000;ChangeDisplaySettingsEx(device,ref original,IntPtr.Zero,0,IntPtr.Zero);throw new InvalidOperationException("변경 확인 실패 · 이전 주사율 복원을 요청했습니다.");}try{Persist(device,actual);}catch{original.Fields=0x400000;ChangeDisplaySettingsEx(device,ref original,IntPtr.Zero,0,IntPtr.Zero);throw;}}
         internal static object Inspect(){return Screen.AllScreens.Select(s=>new {Device=s.DeviceName,Primary=s.Primary,CurrentHz=Current(s.DeviceName).Hz,Resolution=Current(s.DeviceName).Width+"x"+Current(s.DeviceName).Height,Resolutions=Resolutions(s.DeviceName).Select(r=>new {Size=r.ToString(),Hz=ForResolution(s.DeviceName,r).Hz,Test=TestMode(s.DeviceName,ForResolution(s.DeviceName,r))}).ToArray(),Rates=Rates(s.DeviceName).Where(h=>h==60||h==120).ToArray(),Tests=Rates(s.DeviceName).Where(h=>h==60||h==120).Select(h=>new {Hz=h,Result=Test(s.DeviceName,h)}).ToArray()}).ToArray();}
     }
     sealed partial class ControlForm
@@ -60,7 +72,7 @@ namespace GalaxyHardware
                     var yes=new SoftButton{Text="유지",Bounds=new Rectangle(140,77,90,30),DialogResult=DialogResult.OK};var no=new SoftButton{Text="되돌리기",Bounds=new Rectangle(240,77,90,30),DialogResult=DialogResult.Cancel};dialog.Controls.Add(yes);dialog.Controls.Add(no);dialog.CancelButton=no;
                     DateTime deadline=DateTime.UtcNow.AddSeconds(15);Action tick=delegate{int remaining=(int)Math.Ceiling((deadline-DateTime.UtcNow).TotalSeconds);label.Text=target.Width+" × "+target.Height+" · "+target.Hz+" Hz\n"+Math.Max(0,remaining)+"초 후 이전 설정으로 복원합니다.";if(remaining<=0)dialog.DialogResult=DialogResult.Cancel;};
                     countdown.Tick+=delegate{tick();};
-                    DisplayRefresh.SetMode(device,target);tick();countdown.Start();keep=dialog.ShowDialog(this)==DialogResult.OK;countdown.Stop();
+                    DisplayRefresh.SetMode(device,target);tick();countdown.Start();bool accepted=dialog.ShowDialog(this)==DialogResult.OK;countdown.Stop();if(accepted){DisplayRefresh.Persist(device,target);keep=true;}
                 }
             }catch(Exception ex){MessageBox.Show(this,ex.Message,"해상도 변경");}
             finally {
@@ -72,7 +84,7 @@ namespace GalaxyHardware
         bool pickingRefresh;
         void LoadRefreshRates()
         {
-            pickingRefresh=true;try{refreshPicker.Items.Clear();string device=displayPicker.SelectedItem as string;if(device==null)return;var mode=DisplayRefresh.Current(device);uint current=mode.Hz;resolutionPicker.Items.Clear();foreach(var size in DisplayRefresh.Resolutions(device))resolutionPicker.Items.Add(size);resolutionPicker.SelectedItem=new Resolution(mode.Width,mode.Height);resolutionPicker.Enabled=resolutionPicker.Items.Count>1;foreach(uint hz in DisplayRefresh.Rates(device).Where(h=>h==60||h==120))refreshPicker.Items.Add(hz);refreshPicker.SelectedItem=current;refreshPicker.Enabled=refreshPicker.Items.Count>1;detailsTip.SetToolTip(refreshPicker,"현재 해상도 유지 · Windows에서 지원하는 고정 주사율");}catch(Exception ex){refreshPicker.Enabled=false;detailsTip.SetToolTip(refreshPicker,ex.Message);}finally{pickingRefresh=false;}
+            pickingRefresh=true;try{refreshPicker.Items.Clear();string device=displayPicker.SelectedItem as string;if(device==null)return;var mode=DisplayRefresh.Current(device);uint current=mode.Hz;resolutionPicker.Items.Clear();foreach(var size in DisplayRefresh.Resolutions(device))resolutionPicker.Items.Add(size);resolutionPicker.SelectedItem=new Resolution(mode.Width,mode.Height);resolutionPicker.Enabled=resolutionPicker.Items.Count>1;foreach(uint hz in DisplayRefresh.Rates(device).Where(h=>h==60||h==120))refreshPicker.Items.Add(hz);refreshPicker.SelectedItem=current;refreshPicker.Enabled=refreshPicker.Items.Count>1;detailsTip.SetToolTip(refreshPicker,"현재 해상도 유지 · 재부팅 후에도 유지");}catch(Exception ex){refreshPicker.Enabled=false;detailsTip.SetToolTip(refreshPicker,ex.Message);}finally{pickingRefresh=false;}
         }
         void BuildRefreshRow(FlowLayoutPanel stack)
         {
