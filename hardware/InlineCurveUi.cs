@@ -11,8 +11,8 @@ namespace GalaxyHardware
         CurveGraph inlineGraph;
         FanCalibration inlineProfile;
         string savedCurveSignature;
-        readonly Label curveSelection=new Label();
-        readonly NumericUpDown curveTemperature=new NumericUpDown(),curveRpm=new NumericUpDown(),curveCutoff=new NumericUpDown();
+        Label curveSelection=new Label();
+        NumericUpDown curveTemperature=new NumericUpDown(),curveRpm=new NumericUpDown(),curveCutoff=new NumericUpDown();
         bool fanReadInFlight;
         Action afterFanRead;
         readonly ToolTip detailsTip=new ToolTip {AutoPopDelay=15000};
@@ -33,15 +33,29 @@ namespace GalaxyHardware
             inspect(this);
             File.WriteAllText(path,new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(new {Success=issues.Count==0,ClientWidth=ClientSize.Width,ClientHeight=ClientSize.Height,Issues=issues}));
         }
+        bool statusTipsAttached;
+        internal int LayoutHeight(FlowLayoutPanel stack)
+        { int bottom=stack.Padding.Top;foreach(Control c in stack.Controls)if(c.Visible)bottom=Math.Max(bottom,c.Bottom+c.Margin.Bottom);return bottom+stack.Padding.Bottom; }
         void FitWithoutScroll(FlowLayoutPanel stack)
         {
-            PerformLayout();stack.PerformLayout();
-            int available=Screen.FromControl(this).WorkingArea.Height-(Height-ClientSize.Height)-24;
-            int wanted=stack.GetPreferredSize(new Size(ClientSize.Width,0)).Height;
-            if(wanted>available && inlineGraph!=null) {inlineGraph.Height=Math.Max(110,inlineGraph.Height-(wanted-available));PerformLayout();stack.PerformLayout();wanted=stack.GetPreferredSize(new Size(ClientSize.Width,0)).Height;}
+            stack.AutoScroll=false;PerformLayout();stack.PerformLayout();
+            int available=Math.Max(200,Screen.FromControl(this).WorkingArea.Height-(Height-ClientSize.Height)-24);
+            int wanted=LayoutHeight(stack);
+            if(inlineGraph!=null && curveDetails.Visible && wanted>available) {
+                inlineGraph.Height=Math.Max(90,inlineGraph.Height-(wanted-available));
+                curveDetails.PerformLayout();curveDetails.Parent.PerformLayout();stack.PerformLayout();
+                wanted=LayoutHeight(stack);
+            }
             ClientSize=new Size(ClientSize.Width,Math.Min(wanted,available));
+            stack.PerformLayout();wanted=LayoutHeight(stack);
+            // Very small work areas keep every action reachable instead of clipping.
+            stack.AutoScroll=wanted>available;
+            if(stack.AutoScroll)stack.AutoScrollMinSize=new Size(0,wanted);else stack.AutoScrollMinSize=Size.Empty;
             detailsTip.SetToolTip(status,status.Text);detailsTip.SetToolTip(fanControlStatus,fanControlStatus.Text);
-            status.TextChanged+=delegate {detailsTip.SetToolTip(status,status.Text);};fanControlStatus.TextChanged+=delegate {detailsTip.SetToolTip(fanControlStatus,fanControlStatus.Text);};
+            if(!statusTipsAttached) {
+                statusTipsAttached=true;
+                status.TextChanged+=delegate {detailsTip.SetToolTip(status,status.Text);};fanControlStatus.TextChanged+=delegate {detailsTip.SetToolTip(fanControlStatus,fanControlStatus.Text);};
+            }
         }
         void ShowFixedTarget()
         {
@@ -56,7 +70,9 @@ namespace GalaxyHardware
         {
             try {
                 inlineProfile=previewCalibration??FanCalibration.Load();
-                var curve=previewCalibration==null?FanCurve.Load(inlineProfile):FanCurve.Default(inlineProfile);
+                FanCurve curve;
+                try {curve=previewCalibration==null?FanCurve.Load(inlineProfile):FanCurve.Default(inlineProfile);}
+                catch(Exception ex) {curve=FanCurve.Default(inlineProfile);fanControlStatus.Text="이전 커브를 읽을 수 없어 기본 커브를 표시합니다: "+ex.Message;}
                 inlineGraph=new CurveGraph(curve,inlineProfile){Width=488,Height=190,Margin=new Padding(0,0,0,6)};
                 savedCurveSignature=curve.Signature;
                 BuildPresetRow(parent);
@@ -82,7 +98,7 @@ namespace GalaxyHardware
                 detailsTip.SetToolTip(inlineGraph,"드래그: 온도·RPM / Shift: 전체 이동 / Ctrl+Z: 취소");
                 Line(parent,new Label {Text="실선: 요청 · 점선: 기기 지원 속도 (0 또는 약 "+Math.Max(inlineProfile.Entries[0].Fan1Peak,inlineProfile.Entries[0].Fan2Peak)+" RPM 이상)",ForeColor=Color.LightSlateGray},20);
             } catch(Exception ex) {
-                inlineGraph=null;Line(parent,new Label {Text="커브를 사용하려면 RPM 보정이 필요합니다.\n"+ex.Message,ForeColor=Color.FromArgb(85,104,127)},70);
+                inlineGraph=null;Line(parent,new Label {Text="첫 실행 시 팬 속도를 자동으로 측정합니다.\n‘팬 설정’에서 진행 상태 확인과 재시도가 가능합니다.\n"+ex.Message,ForeColor=Color.FromArgb(85,104,127)},85);
             }
         }
         void ApplyInlineCurve()

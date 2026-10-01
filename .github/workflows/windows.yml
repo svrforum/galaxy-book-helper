@@ -30,3 +30,43 @@ jobs:
           $result = Get-Content $report -Raw | ConvertFrom-Json
           if (!$result.Success) { throw 'Editor tests failed.' }
           $result | ConvertTo-Json -Depth 4
+      - name: Automatic setup, cancellation, restoration and error UI tests
+        shell: pwsh
+        run: |
+          $report = Join-Path $env:RUNNER_TEMP 'setup-tests.json'
+          $app = Start-Process ./bin-next/GalaxyHelper.exe -ArgumentList "--setup-self-test $report" -Wait -PassThru
+          if (Test-Path ($report + '.error.txt')) { Get-Content ($report + '.error.txt') }
+          if ($app.ExitCode -ne 0) { throw 'Setup test process failed.' }
+          $result = Get-Content $report -Raw | ConvertFrom-Json
+          if (!$result.Success) { throw 'Setup tests failed.' }
+          $result | ConvertTo-Json -Depth 4
+      - name: Native kernel policy tests (no driver installation)
+        shell: pwsh
+        run: ./tools/Test-NativePolicies.ps1
+      - name: Capture first-run and calibrated editor layouts
+        shell: pwsh
+        run: |
+          $output = Join-Path $env:RUNNER_TEMP 'ui-preview'
+          New-Item -ItemType Directory -Force $output | Out-Null
+          $app = Start-Process ./bin-next/GalaxyHelper.exe -ArgumentList "--layout-preview $output/first-run.png" -Wait -PassThru
+          if ($app.ExitCode -ne 0) { throw 'Layout preview failed.' }
+          $layout = Get-Content "$output/first-run.png.layout.json" -Raw | ConvertFrom-Json
+          if (!$layout.Success) { throw ($layout | ConvertTo-Json -Depth 4) }
+      - name: Upload UI previews and test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-and-test-reports
+          path: |
+            ${{ runner.temp }}/ui-preview/
+            ${{ runner.temp }}/*tests.json*
+      - name: Package app for existing driver installations
+        shell: pwsh
+        run: |
+          Copy-Item ./packaging/APP-UPDATE.ko.md ./bin-next/README.ko.md
+          Compress-Archive -Path ./bin-next/* -DestinationPath ./GalaxyHelper-app.zip
+      - name: Upload app EXEs
+        uses: actions/upload-artifact@v4
+        with:
+          name: GalaxyHelper-app
+          path: GalaxyHelper-app.zip

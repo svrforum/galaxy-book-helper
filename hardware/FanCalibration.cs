@@ -85,21 +85,24 @@ namespace GalaxyHardware
     static class FanControlDiagnostics
     {
         internal static Action TestGuard;
-        public static FanStepReport RunStep(int step,int seconds,bool dropRenewal)
+        public static FanStepReport RunStep(int step,int seconds,bool dropRenewal,FanDiagnosticSession session=null)
         {
             if (step<1 || step>3 || seconds<5 || seconds>120) throw new ArgumentOutOfRangeException("step/seconds");
             var report=new FanStepReport { Step=step,Samples=new List<FanControlState>() };
             using (var client=new FanControlClient()) {
                 try {
+                    if(session!=null)session.Check();
                     if (TestGuard!=null) TestGuard();
                     report.Samples.Add(client.Start(step));
                     for (int i=0;i<seconds;i++) {
-                        Thread.Sleep(1000);
+                        if(session==null)Thread.Sleep(1000);else session.Wait(1000);
+                        if(session!=null)session.Check();
                         if (TestGuard!=null) TestGuard();
                         var observed=FanControlClient.Read();
                         if (!observed.Manual && !dropRenewal) { report.Samples.Add(observed); throw new IOException("Manual control stopped: reason="+observed.StopReason+", temperature="+observed.TemperatureC); }
                         var state=dropRenewal ? FanControlClient.Read() : client.Heartbeat(step);
                         report.Samples.Add(state);
+                        if(session!=null)session.Advance(i+1,seconds);
                         if (dropRenewal && state.State==0 && state.StopReason==2 && state.Status==0) { report.LeaseExpiryVerified=true; break; }
                     }
                 } catch (Exception ex) { report.Error=ex.Message; }
@@ -108,23 +111,24 @@ namespace GalaxyHardware
             report.Success=report.Error==null && report.Restored!=null && report.Restored.State==0 && report.Restored.Status==0 && (!dropRenewal || report.LeaseExpiryVerified);
             return report;
         }
-        public static object Calibrate()
+        public static object Calibrate(FanDiagnosticSession session=null)
         {
             var reports=new List<FanStepReport>();
             for (int step=1;step<=3;step++) {
-                reports.Add(RunStep(step,90,false));
-                string folder=Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"..","artifacts"));
+                if(session!=null)session.Begin("팬 "+step+"단계 RPM 측정",20+(step-1)*18,20+step*18);
+                reports.Add(RunStep(step,90,false,session));
+                string folder=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"GalaxyHelper","diagnostics");
                 Directory.CreateDirectory(folder);
                 File.WriteAllText(Path.Combine(folder,"fan-calibration-progress.json"),new JavaScriptSerializer().Serialize(reports));
                 if (!reports[reports.Count-1].Success) throw new IOException("Calibration step "+step+": "+reports[reports.Count-1].Error);
-                Thread.Sleep(2000);
+                if(session==null)Thread.Sleep(2000);else session.Wait(2000);
             }
             var calibration=FanCalibration.FromReports(reports);
             Directory.CreateDirectory(Path.GetDirectoryName(FanCalibration.FilePath));
             File.WriteAllText(FanCalibration.FilePath,new JavaScriptSerializer().Serialize(calibration));
             return new { Success=true, Calibration=calibration, Reports=reports, File=FanCalibration.FilePath };
         }
-        public static object TestRpmTarget(int target)
+        public static object TestRpmTarget(int target,FanDiagnosticSession session=null)
         {
             var profile=FanCalibration.Load(false);
             var policy=new RpmCapPolicy(profile,target,DateTime.UtcNow);
@@ -135,13 +139,16 @@ namespace GalaxyHardware
             File.WriteAllText(FanCalibration.FilePath,new JavaScriptSerializer().Serialize(profile));
             using (var client=new FanControlClient()) {
                 try {
+                    if(session!=null)session.Check();
                     if (TestGuard!=null) TestGuard();
                     samples.Add(client.Start(policy.Step)); policy.MarkStarted(DateTime.UtcNow);
                     for (int i=0;i<120;i++) {
-                        Thread.Sleep(1000);
+                        if(session==null)Thread.Sleep(1000);else session.Wait(1000);
+                        if(session!=null)session.Check();
                         if (TestGuard!=null) TestGuard();
                         var state=client.Heartbeat(policy.Step);
                         samples.Add(state); policy.Observe(state,DateTime.UtcNow);
+                        if(session!=null)session.Advance(i+1,120);
                     }
                 } catch (Exception ex) { error=ex.Message; }
                 finally { if (client.HasRequest) try { restored=client.Restore(); } catch (Exception ex) { error=(error??"")+" Restore: "+ex.Message; } }
@@ -150,18 +157,19 @@ namespace GalaxyHardware
             bool verified=!policy.Settling(DateTime.UtcNow) && tail.Count==30 && tail.All(s=>s.Manual && s.Step==(uint)policy.Step && s.Fan1Rpm.HasValue && s.Fan2Rpm.HasValue && s.Fan1Rpm<=target+100 && s.Fan2Rpm<=target+100);
             if (verified) verified=tail.Max(s=>s.Fan1Rpm.Value)-tail.Min(s=>s.Fan1Rpm.Value)<=100 && tail.Max(s=>s.Fan2Rpm.Value)-tail.Min(s=>s.Fan2Rpm.Value)<=100;
             bool success=error==null && samples.Count>=121 && verified && restored!=null && restored.State==0 && restored.Status==0;
-            profile.Verified=success;
+            profile.Verified=success && (session==null || !session.DeferVerification);
             File.WriteAllText(FanCalibration.FilePath,new JavaScriptSerializer().Serialize(profile));
             return new { Success=success,Error=error,DurationSeconds=120,TargetRpm=target,ToleranceRpm=100,SettledRpmVerified=verified,Samples=samples,Restored=restored };
         }
-        public static FanVerificationReport VerifyTargetOnly()
+        public static FanVerificationReport VerifyTargetOnly(FanDiagnosticSession session=null)
         {
             var report=new FanVerificationReport { Stage="rpm-target" };
             try {
                 var profile=FanCalibration.Load(false);
                 report.TargetRpm=(int)(Math.Ceiling(profile.Entries[1].ConservativeRpm/100.0)*100);
                 SaveProgress(report);
-                report.Target=TestRpmTarget(report.TargetRpm);
+                if(session!=null)session.Begin("RPM 목표 유지 및 자동 복귀 검증",75,97);
+                report.Target=TestRpmTarget(report.TargetRpm,session);
                 var result=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(new JavaScriptSerializer().Serialize(report.Target));
                 report.Success=(bool)result["Success"];
                 if (!report.Success) report.Error="RPM target or restoration was not verified.";
@@ -169,31 +177,34 @@ namespace GalaxyHardware
             } catch (Exception ex) { report.Error=ex.Message; }
             SaveProgress(report); return report;
         }
-        public static FanVerificationReport VerifyAll()
+        public static FanVerificationReport VerifyAll(FanDiagnosticSession session=null)
         {
             var report=new FanVerificationReport();
             try {
                 report.Stage="step2"; SaveProgress(report);
-                report.Step2=RunStep(2,15,false); SaveProgress(report);
+                if(session!=null)session.Begin("팬 제어 응답 확인",15,18);
+                report.Step2=RunStep(2,15,false,session); SaveProgress(report);
                 if (!report.Step2.Success) throw new IOException(report.Step2.Error??"Step 2 failed");
                 report.Stage="lease"; SaveProgress(report);
-                report.Lease=RunStep(2,10,true); SaveProgress(report);
+                if(session!=null)session.Begin("갱신 중단 시 자동 복귀 확인",18,20);
+                report.Lease=RunStep(2,10,true,session); SaveProgress(report);
                 if (!report.Lease.Success) throw new IOException(report.Lease.Error??"Lease expiry was not verified");
                 report.Stage="calibration"; SaveProgress(report);
-                report.Calibration=Calibrate(); SaveProgress(report);
+                report.Calibration=Calibrate(session); SaveProgress(report);
                 var profile=FanCalibration.Load(false);
                 report.TargetRpm=(int)(Math.Ceiling(profile.Entries[1].ConservativeRpm/100.0)*100);
                 report.Stage="rpm-target"; SaveProgress(report);
-                report.Target=TestRpmTarget(report.TargetRpm);
+                if(session!=null)session.Begin("RPM 목표 유지 및 자동 복귀 검증",75,97);
+                report.Target=TestRpmTarget(report.TargetRpm,session);
                 var result=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(new JavaScriptSerializer().Serialize(report.Target));
-                if (!(bool)result["Success"]) throw new IOException("RPM target was not verified.");
+                if (!(bool)result["Success"]) throw new IOException(Convert.ToString(result["Error"])+" RPM 목표 유지 또는 자동 복귀를 확인하지 못했습니다.");
                 report.Success=true; report.Stage="complete";
             } catch (Exception ex) { report.Error=ex.Message; }
             SaveProgress(report); return report;
         }
         static void SaveProgress(FanVerificationReport report)
         {
-            string folder=Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"..","artifacts"));
+            string folder=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"GalaxyHelper","diagnostics");
             Directory.CreateDirectory(folder);
             File.WriteAllText(Path.Combine(folder,"fan-control-live.json"),new JavaScriptSerializer().Serialize(report));
         }
