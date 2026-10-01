@@ -27,7 +27,9 @@ public static class SamsungFanReadProbe {
  }
  [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern SafeFileHandle CreateFile(string path,uint access,uint share,IntPtr security,uint creation,uint flags,IntPtr template);
  [DllImport("kernel32.dll",SetLastError=true)] static extern bool DeviceIoControl(SafeFileHandle handle,uint code,byte[] input,uint inputSize,byte[] output,uint outputSize,out uint returned,IntPtr overlapped);
- public static string Read(string path, string query) {
+ public static string Read(string path, string query) {return ReadAccess(path,query,0xC0000000);}
+ public static string ReadAccess(string path,string query,uint access){
+  if(access!=0xC0000000 && access!=0x80000000)throw new ArgumentException("Unsupported read probe access");
   if (!path.StartsWith(@"\\?\ACPI#SAM0430#",StringComparison.OrdinalIgnoreCase) || !path.EndsWith("#{53567919-4a93-414f-9772-7171da240ecf}",StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Unexpected Samsung interface");
   byte[] payload;
   switch(query) {
@@ -39,7 +41,7 @@ public static class SamsungFanReadProbe {
   byte[] input=new byte[21],output=new byte[21];
   input[0]=0x43; input[1]=0x58; input[2]=0x7A;
   Array.Copy(payload,0,input,5,payload.Length);
-  using(var h=CreateFile(path,0xC0000000,3,IntPtr.Zero,3,0,IntPtr.Zero)) {
+  using(var h=CreateFile(path,access,3,IntPtr.Zero,3,0,IntPtr.Zero)) {
    if(h.IsInvalid) return "OpenError="+Marshal.GetLastWin32Error();
    uint count;
    if(!DeviceIoControl(h,0x82774004,input,21,output,21,out count,IntPtr.Zero)) return "IoctlError="+Marshal.GetLastWin32Error();

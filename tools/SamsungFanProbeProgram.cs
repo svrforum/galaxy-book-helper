@@ -23,13 +23,13 @@ static class SamsungFanProbeProgram
         int exitCode = 0;
         try {
             string path = SamsungFanReadProbe.FindInterface();
-            foreach (string query in new[] {"Support", "Rpm", "MaxStep"}) {
-                string result = SamsungFanReadProbe.Read(path, query);
-                results.Add(new { Query = query, Result = result });
+            foreach(uint access in new uint[]{0x80000000,0xC0000000}) foreach (string query in new[] {"Support", "Rpm", "MaxStep"}) {
+                string result = SamsungFanReadProbe.ReadAccess(path, query,access);
+                results.Add(new { Access=access.ToString("X8"),Query = query, Result = result });
                 if (result.Contains("Error=") || result.StartsWith("InvalidResponse") || result.Contains("Supported=False")) { exitCode = 2; break; }
             }
         } catch (Exception ex) { results.Add(new { Error = ex.ToString() }); exitCode = 1; }
-        File.WriteAllText(output, new JavaScriptSerializer().Serialize(new { Time = DateTimeOffset.Now.ToString("o"), SettingsWrites = false, StandaloneProcess = true, Results = results }));
+        File.WriteAllText(output, new JavaScriptSerializer().Serialize(new { Time = DateTimeOffset.Now.ToString("o"), Identity=WindowsIdentity.GetCurrent().Name,IsSystem=WindowsIdentity.GetCurrent().IsSystem,SettingsWrites = false, StandaloneProcess = true, Results = results }));
         return exitCode;
     }
 }

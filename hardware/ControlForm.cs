@@ -456,7 +456,8 @@ namespace GalaxyHardware
                             else if (args.Length == 2 && args[0] == "--ui-curve-smoke") { form.RunControlSmoke(args[1],true); Application.Run(form); }
                             else if (args.Length == 2 && args[0] == "--ui-zero-smoke") { form.RunControlSmoke(args[1],true,true); Application.Run(form); }
                             else if (args.Length==1 && args[0]=="--startup") {form.ResumeAtLogon();Application.Run(form);}
-                            else if (args.Length == 0) Application.Run(form);
+                            else if(args.Length==2 && args[0]=="--resume-check"){form.VerifyResume(args[1]);Application.Run(form);}
+                            else if (args.Length == 0) {try{if(StartupTask.Enabled())StartupTask.Set(true);}catch(Exception ex){form.NotifyStartupUpdate(ex.Message);}form.ResumeAtLogon(false);Application.Run(form);}
                             else if (args.Length == 1 && args[0]=="--show-zero") {form.PreviewZeroCurve();Application.Run(form);}
                             else throw new ArgumentException("Unknown arguments");
                         }

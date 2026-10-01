@@ -43,6 +43,7 @@ namespace GalaxyHardware
     }
     sealed partial class ControlForm
     {
+        internal void NotifyStartupUpdate(string message){NotifyError("자동 시작용 앱 갱신 실패: "+message);}
         void RememberApplied(bool power,FanCurve curve=null)
         {
             if(smokeMode)return;
@@ -56,17 +57,31 @@ namespace GalaxyHardware
             item.Click+=delegate{try{StartupTask.Set(!item.Checked);item.Checked=StartupTask.Enabled();if(item.Checked)NotifyError("로그인 후 마지막 적용값을 복원합니다. 전력·커브를 한 번 적용해 저장하세요.");}catch(Exception ex){NotifyError("자동 시작 설정 실패: "+ex.Message);}};
             quickMenu.Items.Add(item);
         }
-        internal void ResumeAtLogon()
+        internal void VerifyResume(string output)
         {
-            Shown+=delegate {BeginInvoke((Action)delegate{Hide();});};
+            smokeMode=true;var saved=AppliedSettings.Load(AppliedSettings.PathName);
+            var watch=System.Diagnostics.Stopwatch.StartNew();var check=new System.Windows.Forms.Timer{Interval=500};
+            ResumeAtLogon(false);
+            check.Tick+=delegate {
+                bool power=!saved.Pl1.HasValue || ownsSetting && Math.Abs(Rapl.Pl1(msr.ReadMsr(0x610),units)-saved.Pl1.Value)<0.13 && Math.Abs(Rapl.Pl2(msr.ReadMsr(0x610),units)-saved.Pl2.Value)<0.13;
+                bool curve=saved.Curve==null || fanClient!=null && !fanBusy && fanCurvePolicy!=null;
+                if(watch.Elapsed.TotalSeconds<8 || (!power||!curve)&&watch.Elapsed.TotalSeconds<65)return;
+                check.Stop();check.Dispose();
+                File.WriteAllText(output,new JavaScriptSerializer().Serialize(new {Success=power&&curve,PowerVerified=power,CurveWasSaved=saved.Curve!=null,CurveVerified=curve,Status=status.Text,FanStatus=fanControlStatus.Text}));Close();
+            };
+            Shown+=delegate{check.Start();};
+        }
+        internal void ResumeAtLogon(bool background=true)
+        {
+            if(background)Shown+=delegate {BeginInvoke((Action)delegate{Hide();});};
             var wait=new System.Windows.Forms.Timer{Interval=2000};int attempts=0;
             wait.Tick+=delegate {
                 try {
-                    if(!StartupTask.Enabled()){wait.Stop();wait.Dispose();return;}
+                    if(background && !StartupTask.Enabled()){wait.Stop();wait.Dispose();return;}
                     if((!readingHealthy||fanBusy||setupRunning||!FanControlClient.IsReady())&&++attempts<30)return;
                     wait.Stop();wait.Dispose();
                     if(!readingHealthy||fanBusy||setupRunning)throw new IOException("센서 준비를 확인하지 못했습니다.");
-                    if(File.Exists(Program.Journal))throw new IOException("이전 전력 복원 기록이 남아 있습니다. 수동 확인이 필요합니다.");
+                    if(File.Exists(Program.Journal)){var recovery=new JavaScriptSerializer().Deserialize<Program.Recovery>(File.ReadAllText(Program.Journal));if(recovery==null||String.IsNullOrWhiteSpace(recovery.Boot)||recovery.Boot==Program.Boot())throw new IOException("현재 부팅의 복원 기록이 남아 있습니다. 수동 확인이 필요합니다.");File.Move(Program.Journal,Program.Journal+".previous-boot-"+Guid.NewGuid().ToString("N"));}
                     var saved=AppliedSettings.Load(AppliedSettings.PathName);
                     if(saved.Curve!=null){var profile=FanCalibration.Load();saved.Curve.Validate(profile);new FanCurvePolicy(profile,saved.Curve,Program.Temperature(msr));if(!FanControlClient.IsReady()||saved.Curve.HasZero&&!FanControlClient.IsZeroHoldReady())throw new IOException("팬 드라이버가 준비되지 않았습니다.");}
                     if(saved.Pl1.HasValue){pl1.Value=(decimal)saved.Pl1.Value;pl2.Value=(decimal)saved.Pl2.Value;Apply();if(!ownsSetting)throw new IOException("전력 적용을 확인하지 못했습니다.");}
