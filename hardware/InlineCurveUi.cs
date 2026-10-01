@@ -42,7 +42,7 @@ namespace GalaxyHardware
             int available=Math.Max(200,Screen.FromControl(this).WorkingArea.Height-(Height-ClientSize.Height)-24);
             int wanted=LayoutHeight(stack);
             if(inlineGraph!=null && curveDetails.Visible && wanted>available) {
-                inlineGraph.Height=Math.Max(110,inlineGraph.Height-(wanted-available));
+                inlineGraph.Height=Math.Max(90,inlineGraph.Height-(wanted-available));
                 curveDetails.PerformLayout();curveDetails.Parent.PerformLayout();stack.PerformLayout();
                 wanted=LayoutHeight(stack);
             }

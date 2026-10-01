@@ -17,7 +17,7 @@ namespace GalaxyHardware
         readonly Color accent=Color.FromArgb(49,130,246);
         FlowLayoutPanel Card(FlowLayoutPanel parent,string title)
         {
-            var card=new RoundedCard {Width=520,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(14),BackColor=surface,Margin=new Padding(0,0,0,6)};
+            var card=new RoundedCard {Width=520,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(10),BackColor=surface,Margin=new Padding(0,0,0,6)};
             parent.Controls.Add(card);
             var heading=new Panel();heading.Controls.Add(new PictureBox {Image=PanelIcons.Draw(title=="전력"?"power":"fan",accent,18),Bounds=new Rectangle(0,1,18,18)});heading.Controls.Add(new Label {Text=title,ForeColor=Color.FromArgb(51,61,75),Font=new Font(Font,FontStyle.Bold),Bounds=new Rectangle(26,1,200,20)});Line(card,heading,24);
             return card;
@@ -33,8 +33,8 @@ namespace GalaxyHardware
         {
             Text="Galaxy Helper";Font=new Font("맑은 고딕",9.5f);BackColor=Color.FromArgb(242,244,247);ForeColor=Color.FromArgb(35,43,55);
             AutoScaleMode=AutoScaleMode.Dpi;ClientSize=new Size(560,700);MinimumSize=new Size(556,0);FormBorderStyle=FormBorderStyle.None;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;
-            var stack=new FlowLayoutPanel {Dock=DockStyle.Fill,Padding=new Padding(18),FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoScroll=false};Controls.Add(stack);
-            var header=new Panel {Width=520,Height=43,Margin=new Padding(0,0,0,6)};
+            var stack=new FlowLayoutPanel {Dock=DockStyle.Fill,Padding=new Padding(12),FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoScroll=false};Controls.Add(stack);
+            var header=new Panel {Width=520,Height=38,Margin=new Padding(0,0,0,6)};
             header.Controls.Add(new Label {Text="Galaxy Helper",Font=new Font("Segoe UI",15,FontStyle.Bold),Bounds=new Rectangle(0,0,190,38)});
             measured.Font=new Font("Segoe UI",13);measured.ForeColor=accent;measured.TextAlign=ContentAlignment.MiddleRight;measured.Bounds=new Rectangle(194,0,244,38);header.Controls.Add(measured);stack.Controls.Add(header);
             Shown+=delegate {FitWithoutScroll(stack);};

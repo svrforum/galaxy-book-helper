@@ -224,6 +224,7 @@ namespace GalaxyHardware
         {
             if (busy || hardwareDisposed) return;
             TryAutomaticFanSetup();
+            if(automaticSetupQueued)return;
             try
             {
                 ulong raw = msr.ReadMsr(0x610); int temperature = Program.Temperature(msr);
@@ -363,7 +364,7 @@ namespace GalaxyHardware
         }
         void ClosingForm(object sender, FormClosingEventArgs e)
         {
-            if(setupRunning) { e.Cancel=true;return; }
+            if(setupRunning) { e.Cancel=e.CloseReason!=CloseReason.WindowsShutDown;return; }
             if(e.CloseReason==CloseReason.UserClosing && !exitRequested && !smokeMode) { e.Cancel=true; Hide(); return; }
             StopFan();
             if (ownsSetting)
