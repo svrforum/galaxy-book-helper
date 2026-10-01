@@ -224,7 +224,11 @@ namespace GalaxyHardware
         {
             if (busy || hardwareDisposed) return;
             TryAutomaticFanSetup();
-            if(automaticSetupQueued)return;
+            if(automaticSetupAttempted && !fanReady && !fanBusy && (DateTime.UtcNow-lastSetupReadyCheck).TotalSeconds>=5) {
+                lastSetupReadyCheck=DateTime.UtcNow;
+                try {fanReady=FanControlClient.IsReady();}catch{}
+                FanButtons();
+            }
             try
             {
                 ulong raw = msr.ReadMsr(0x610); int temperature = Program.Temperature(msr);

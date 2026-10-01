@@ -49,9 +49,9 @@ namespace GalaxyHardware
             var fan=Card(stack,"팬 속도");fanReading.Font=new Font("Segoe UI",15,FontStyle.Bold);Line(fan,fanReading,36);
             curveDetails=new FlowLayoutPanel {Width=488,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,FlowDirection=FlowDirection.TopDown,WrapContents=false,Margin=Padding.Empty};fan.Controls.Add(curveDetails);BuildInlineCurve(curveDetails);curveDetails.Visible=true;
             var controls=Row();Style(curveButton,inlineGraph!=null && inlineGraph.Curve.IsZeroHold?"0 RPM + 5/10W 적용":"커브 적용",155);curveButton.BackColor=accent;curveButton.ForeColor=Color.White;curveButton.Click+=delegate {ApplyInlineCurve();};controls.Controls.Add(curveButton);
-            Style(fanAuto,"자동으로",115);controls.Controls.Add(fanAuto);Style(fanRefresh,"새로고침",88);controls.Controls.Add(fanRefresh);Style(fanSetup,"팬 설정",94);controls.Controls.Add(fanSetup);fan.Controls.Add(controls);
+            Style(fanAuto,"자동으로",115);controls.Controls.Add(fanAuto);Style(fanRefresh,"새로고침",88);controls.Controls.Add(fanRefresh);Style(fanSetup,"정밀 보정",94);controls.Controls.Add(fanSetup);fan.Controls.Add(controls);
             fanControlStatus.ForeColor=Color.FromArgb(107,118,132);fanControlStatus.AutoEllipsis=true;Line(fan,fanControlStatus,24);
-            fanSetup.Click+=delegate {OpenFanSetup();};fanSetup.AccessibleName="팬 자동 보정 및 검증";
+            fanSetup.Click+=delegate {OpenFanSetup();};fanSetup.AccessibleName="팬 정밀 보정 및 검증";
             detailsTip.SetToolTip(fanSetup,"팬 단계 측정 · RPM 목표 유지 · 자동 복귀 검증 · 약 7~9분");
             Shown+=delegate {if(!smokeMode)BeginInvoke(new Action(TryAutomaticFanSetup));};
             fanSteps.Minimum=1;fanSteps.Maximum=3;fanSteps.Value=2;
@@ -109,7 +109,7 @@ namespace GalaxyHardware
             rpm.DropDownItems.Add("직접 입력…",null,delegate {ShowFixedTarget();});
             var curveItem=new ToolStripMenuItem("저장된 온도 커브 적용",null,delegate {StartCurve();}); curveItem.Enabled=fanReady&&!fanBusy;curveItem.Checked=fanClient!=null&&fanCurvePolicy!=null;quickMenu.Items.Add(curveItem);
             quickMenu.Items.Add("온도 커브 편집",null,delegate {ShowPanel();EditCurve();}).Enabled=!fanBusy;
-            quickMenu.Items.Add("팬 보정 및 검증…",null,delegate {OpenFanSetup();}).Enabled=fanReady&&!fanBusy&&!busy;
+            quickMenu.Items.Add("정밀 팬 보정 및 검증…",null,delegate {OpenFanSetup();}).Enabled=fanReady&&!fanBusy&&!busy;
             quickMenu.Items.Add(new ToolStripSeparator());
             quickMenu.Items.Add("종료 및 설정 복원",null,delegate { exitRequested=true; Close(); });
         }

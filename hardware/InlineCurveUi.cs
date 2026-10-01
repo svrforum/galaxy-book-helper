@@ -98,7 +98,7 @@ namespace GalaxyHardware
                 detailsTip.SetToolTip(inlineGraph,"드래그: 온도·RPM / Shift: 전체 이동 / Ctrl+Z: 취소");
                 Line(parent,new Label {Text="실선: 요청 · 점선: 기기 지원 속도 (0 또는 약 "+Math.Max(inlineProfile.Entries[0].Fan1Peak,inlineProfile.Entries[0].Fan2Peak)+" RPM 이상)",ForeColor=Color.LightSlateGray},20);
             } catch(Exception ex) {
-                inlineGraph=null;Line(parent,new Label {Text="첫 실행 시 팬 속도를 자동으로 측정합니다.\n‘팬 설정’에서 진행 상태 확인과 재시도가 가능합니다.\n"+ex.Message,ForeColor=Color.FromArgb(85,104,127)},85);
+                inlineGraph=null;Line(parent,new Label {Text="시작할 때 짧은 준비 상태 검사를 수행합니다.\n정확한 RPM 커브가 필요하면 ‘정밀 보정’을 실행하세요.\n"+ex.Message,ForeColor=Color.FromArgb(85,104,127)},85);
             }
         }
         void ApplyInlineCurve()
