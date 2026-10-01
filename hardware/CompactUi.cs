@@ -13,53 +13,54 @@ namespace GalaxyHardware
         Action afterFanRestore;
         readonly Button curveButton=new Button();
         readonly ContextMenuStrip quickMenu=new ContextMenuStrip();
-        readonly Color surface=Color.FromArgb(29,34,44);
-        readonly Color accent=Color.FromArgb(109,218,193);
+        readonly Color surface=Color.White;
+        readonly Color accent=Color.FromArgb(49,130,246);
         FlowLayoutPanel Card(FlowLayoutPanel parent,string title)
         {
-            var card=new FlowLayoutPanel {Width=520,AutoSize=true,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(12),BackColor=surface,Margin=new Padding(0,0,0,8)};
+            var card=new RoundedCard {Width=520,AutoSize=true,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(10),BackColor=surface,Margin=new Padding(0,0,0,6)};
             parent.Controls.Add(card);
-            Line(card,new Label {Text=title,ForeColor=accent,Font=new Font(Font,FontStyle.Bold)},22);
+            var heading=new Panel();heading.Controls.Add(new PictureBox {Image=PanelIcons.Draw(title=="전력"?"power":"fan",accent,18),Bounds=new Rectangle(0,1,18,18)});heading.Controls.Add(new Label {Text=title,ForeColor=Color.FromArgb(51,61,75),Font=new Font(Font,FontStyle.Bold),Bounds=new Rectangle(26,1,200,20)});Line(card,heading,24);
             return card;
         }
         static void Line(FlowLayoutPanel parent,Control control,int height)
-        { control.Size=new Size(488,height); control.Margin=new Padding(0,0,0,5); parent.Controls.Add(control); }
-        FlowLayoutPanel Row() { return new FlowLayoutPanel {Width=488,Height=36,Margin=new Padding(0,0,0,5),WrapContents=false}; }
+        { control.Size=new Size(488,height); control.Margin=new Padding(0,0,0,3); parent.Controls.Add(control); }
+        FlowLayoutPanel Row() { return new FlowLayoutPanel {Width=488,Height=36,Margin=new Padding(0,0,0,3),WrapContents=false}; }
         Button QuickButton(string text,int width,Action action)
         { var b=new Button(); Style(b,text,width); b.FlatAppearance.BorderSize=0; b.Margin=new Padding(0,0,6,0); b.Click+=delegate { action(); }; return b; }
         void Number(NumericUpDown n,int width)
-        { n.Width=width; n.ForeColor=ForeColor; n.BackColor=Color.FromArgb(40,47,60); n.BorderStyle=BorderStyle.FixedSingle; n.Margin=new Padding(0,4,8,0); }
+        { n.Width=width; n.ForeColor=ForeColor; n.BackColor=Color.FromArgb(242,244,247); n.BorderStyle=BorderStyle.FixedSingle; n.Margin=new Padding(0,4,8,0); }
         void BuildCompactUi()
         {
-            Text="Galaxy Helper";Font=new Font("맑은 고딕",9);BackColor=Color.FromArgb(15,18,24);ForeColor=Color.FromArgb(236,240,246);
-            AutoScaleMode=AutoScaleMode.Dpi;ClientSize=new Size(560,700);MinimumSize=new Size(570,550);FormBorderStyle=FormBorderStyle.FixedSingle;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;
+            Text="Galaxy Helper";Font=new Font("맑은 고딕",9);BackColor=Color.FromArgb(242,244,247);ForeColor=Color.FromArgb(35,43,55);
+            AutoScaleMode=AutoScaleMode.Dpi;ClientSize=new Size(560,700);MinimumSize=new Size(556,500);FormBorderStyle=FormBorderStyle.None;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;
             var stack=new FlowLayoutPanel {Dock=DockStyle.Fill,Padding=new Padding(18),FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoScroll=false};Controls.Add(stack);
-            var header=new Panel {Width=520,Height=43,Margin=new Padding(0,0,0,8)};
-            header.Controls.Add(new Label {Text="Galaxy Helper",Font=new Font("Segoe UI",17,FontStyle.Bold),Bounds=new Rectangle(0,0,235,38)});
-            measured.Font=new Font("Segoe UI",16);measured.ForeColor=accent;measured.TextAlign=ContentAlignment.MiddleRight;measured.Bounds=new Rectangle(238,0,280,38);header.Controls.Add(measured);stack.Controls.Add(header);
+            var header=new Panel {Width=520,Height=43,Margin=new Padding(0,0,0,6)};
+            header.Controls.Add(new Label {Text="Galaxy Helper",Font=new Font("Segoe UI",15,FontStyle.Bold),Bounds=new Rectangle(0,0,190,38)});
+            measured.Font=new Font("Segoe UI",13);measured.ForeColor=accent;measured.TextAlign=ContentAlignment.MiddleRight;measured.Bounds=new Rectangle(194,0,244,38);header.Controls.Add(measured);stack.Controls.Add(header);
             Shown+=delegate {FitWithoutScroll(stack);};
             var power=Card(stack,"전력");
             var presets=Row();presets.Controls.Add(QuickButton("절전  10W",150,delegate {QuickPower(10,10);}));presets.Controls.Add(QuickButton("균형  15 / 20W",162,delegate {QuickPower(15,20);}));presets.Controls.Add(QuickButton("여유  25 / 35W",162,delegate {QuickPower(25,35);}));power.Controls.Add(presets);
             Configure(pl1,15);Configure(pl2,20);Number(pl1,78);Number(pl2,78);
             var watts=Row();watts.Controls.Add(new Label {Text="지속 W",Width=60,Padding=new Padding(0,6,0,0)});watts.Controls.Add(pl1);watts.Controls.Add(new Label {Text="단기 W",Width=60,Padding=new Padding(0,6,0,0)});watts.Controls.Add(pl2);Style(apply,"적용",82);watts.Controls.Add(apply);Style(restore,"복원",86);watts.Controls.Add(restore);power.Controls.Add(watts);
-            status.ForeColor=Color.LightSlateGray;status.AutoEllipsis=true;Line(power,status,20);
-            var fan=Card(stack,"팬 속도");fanReading.Font=new Font(Font.FontFamily,10);Line(fan,fanReading,38);
-            BuildInlineCurve(fan);
-            var controls=Row();Style(curveButton,inlineGraph!=null && inlineGraph.Curve.IsZeroHold?"0 RPM + 5/10W 적용":"커브 적용",155);curveButton.BackColor=accent;curveButton.ForeColor=Color.FromArgb(15,30,28);curveButton.Click+=delegate {ApplyInlineCurve();};controls.Controls.Add(curveButton);
+            status.ForeColor=Color.FromArgb(107,118,132);status.AutoEllipsis=true;Line(power,status,20);
+            var fan=Card(stack,"팬 속도");fanReading.Font=new Font(Font.FontFamily,10);Line(fan,fanReading,34);
+            var expand=QuickButton("팬 커브 편집  ›",488,delegate {curveDetails.Visible=!curveDetails.Visible;FitWithoutScroll(stack);PositionPanel();});fan.Controls.Add(expand);
+            curveDetails=new FlowLayoutPanel {Width=488,AutoSize=true,FlowDirection=FlowDirection.TopDown,WrapContents=false,Margin=Padding.Empty};fan.Controls.Add(curveDetails);BuildInlineCurve(curveDetails);curveDetails.Visible=smokeMode;
+            var controls=Row();Style(curveButton,inlineGraph!=null && inlineGraph.Curve.IsZeroHold?"0 RPM + 5/10W 적용":"커브 적용",155);curveButton.BackColor=accent;curveButton.ForeColor=Color.White;curveButton.Click+=delegate {ApplyInlineCurve();};controls.Controls.Add(curveButton);
             Style(fanAuto,"자동 제어로 복귀",160);controls.Controls.Add(fanAuto);Style(fanRefresh,"새로 조회",145);controls.Controls.Add(fanRefresh);fan.Controls.Add(controls);
-            fanControlStatus.ForeColor=Color.LightSteelBlue;fanControlStatus.AutoEllipsis=true;Line(fan,fanControlStatus,24);
+            fanControlStatus.ForeColor=Color.FromArgb(107,118,132);fanControlStatus.AutoEllipsis=true;Line(fan,fanControlStatus,24);
             fanSteps.Minimum=1;fanSteps.Maximum=3;fanSteps.Value=2;
             fanTarget.Minimum=1000;fanTarget.Maximum=6500;fanTarget.Increment=100;fanTarget.Value=3400;Number(fanTarget,100);Style(fanCap,"고정 목표 적용",170);
             Line(fan,new Label {Text="일반 커브 80°C 보호 · 0 RPM은 지정 온도에서 자동 냉각",ForeColor=Color.FromArgb(131,145,166)},20);
             apply.Click+=delegate {Apply();};restore.Click+=delegate {try {Restore();}catch(Exception ex){NotifyError(ex.Message);}};
             fanApply.Click+=delegate {StartFan(false);};fanCap.Click+=delegate {StartFan(true);};fanAuto.Click+=delegate {RestoreFan();};fanRefresh.Click+=delegate {RefreshFan();};
             fanTimer.Interval=1000;fanTimer.Tick+=delegate {TickFan();};
-            tray.Icon=SystemIcons.Application;tray.Text="Galaxy Helper";tray.ContextMenuStrip=quickMenu;tray.Visible=true;
-            quickMenu.Opening+=delegate {PopulateQuickMenu();};tray.MouseClick+=delegate(object sender,MouseEventArgs e){if(e.Button==MouseButtons.Left){if(Visible)Hide();else ShowPanel();}};
+            SetupTrayPanel(header);DecorateButtons(stack);tray.Text="Galaxy Helper";tray.ContextMenuStrip=quickMenu;tray.Visible=true;
+            quickMenu.Opening+=delegate {PopulateQuickMenu();};tray.MouseClick+=delegate(object sender,MouseEventArgs e){if(e.Button==MouseButtons.Left){if(Visible)Hide();else if((DateTime.UtcNow-lastDismiss).TotalMilliseconds>250)ShowPanel();}};
             Resize+=delegate {if(WindowState==FormWindowState.Minimized)Hide();};FormClosing+=ClosingForm;
         }
-        void ShowPanel() { Show(); WindowState=FormWindowState.Normal; Activate(); }
-        void EditCurve() {ShowPanel(); if(inlineGraph!=null) {inlineGraph.Focus();((ScrollableControl)inlineGraph.Parent).ScrollControlIntoView(inlineGraph);} }
+        void ShowPanel() { dismissTimer.Stop(); PositionPanel(); Show(); WindowState=FormWindowState.Normal; Activate(); }
+        void EditCurve() {ShowPanel(); if(inlineGraph!=null) {curveDetails.Visible=true;FitWithoutScroll((FlowLayoutPanel)Controls[0]);PositionPanel();inlineGraph.Focus();((ScrollableControl)inlineGraph.Parent).ScrollControlIntoView(inlineGraph);} }
         void StartCurve()
         {
             if(fanReadInFlight) {afterFanRead=delegate {StartCurve();};fanControlStatus.Text="조회 완료 후 커브를 적용합니다…";return;}
@@ -87,7 +88,7 @@ namespace GalaxyHardware
         {
             quickMenu.Items.Clear();
             quickMenu.Items.Add("Galaxy Helper  ·  "+measured.Text).Enabled=false;
-            quickMenu.Items.Add("창 열기",null,delegate { ShowPanel(); });
+            quickMenu.Items.Add("패널 열기",null,delegate { ShowPanel(); });
             var power=new ToolStripMenuItem("전력 제한"); quickMenu.Items.Add(power);
             foreach(var pair in new[] {new[]{10,10},new[]{15,20},new[]{25,35}}) {
                 int a=pair[0],b=pair[1]; var item=new ToolStripMenuItem(a+" / "+b+" W",null,delegate { QuickPower(a,b); });

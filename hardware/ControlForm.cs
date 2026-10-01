@@ -90,7 +90,7 @@ namespace GalaxyHardware
         }
         static void Add(FlowLayoutPanel stack, Control item, int height) { item.Size = new Size(575, height); item.Margin = new Padding(0, 2, 0, 4); stack.Controls.Add(item); }
         static void Configure(NumericUpDown input, decimal initial) { input.Minimum = 5; input.Maximum = 80; input.DecimalPlaces = 1; input.Increment = 0.5M; input.Value = initial; input.Width = 90; input.ForeColor = Color.Black; }
-        static void Style(Button button, string text, int width) { button.Text = text; button.Size = new Size(width, 32); button.Margin = new Padding(0, 0, 6, 0); button.FlatStyle = FlatStyle.Flat; button.BackColor = Color.FromArgb(44, 64, 87); }
+        static void Style(Button button, string text, int width) { button.Text = text; button.Size = new Size(width, 32); button.Margin = new Padding(0, 0, 6, 0); button.FlatStyle = FlatStyle.Flat; button.BackColor = Color.FromArgb(232,239,250); }
         void ShowFan(FanSample sample)
         {
             fanReading.Text = sample.Success
@@ -125,7 +125,7 @@ namespace GalaxyHardware
             fanSteps.Enabled=fanTarget.Enabled=!fanBusy && fanClient==null;
             fanAuto.Enabled=!fanBusy && fanClient!=null;
             fanRefresh.Enabled=!fanBusy && fanClient==null;
-            foreach (var button in new[] {fanApply,fanAuto,fanCap}) button.BackColor=button.Enabled ? Color.FromArgb(44,64,87) : Color.LightSlateGray;
+            foreach (var button in new[] {fanApply,fanAuto,fanCap}) button.BackColor=button.Enabled ? Color.FromArgb(232,239,250) : Color.LightSlateGray;
         }
         void StartFan(bool cap,bool curve=false)
         {
@@ -216,8 +216,8 @@ namespace GalaxyHardware
             bool recovery = File.Exists(Program.Journal);
             apply.Enabled = !busy && readingHealthy && !recovery; restore.Enabled = !busy && recovery;
             pl1.Enabled = pl2.Enabled = !busy && !recovery;
-            apply.BackColor = apply.Enabled ? Color.FromArgb(44, 64, 87) : Color.LightSlateGray;
-            restore.BackColor = restore.Enabled ? Color.FromArgb(44, 64, 87) : Color.LightSlateGray;
+            apply.BackColor = apply.Enabled ? Color.FromArgb(232,239,250) : Color.LightSlateGray;
+            restore.BackColor = restore.Enabled ? Color.FromArgb(232,239,250) : Color.LightSlateGray;
         }
         void RefreshReadings()
         {
@@ -386,7 +386,7 @@ namespace GalaxyHardware
             if (disposing && !hardwareDisposed)
             {
                 hardwareDisposed = true; StopFan(); fanTimer.Dispose(); timer.Dispose(); tray.Dispose();
-                detailsTip.Dispose();
+                detailsTip.Dispose();dismissTimer.Dispose();if(panelIcon!=null)panelIcon.Dispose();
                 if (mmio != null) mmio.Dispose(); if(msr!=null) msr.Dispose();
             }
             base.Dispose(disposing);
@@ -401,9 +401,10 @@ namespace GalaxyHardware
             try
             {
                 if(args.Length==2 && args[0]=="--editor-self-test") {File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(EditorSelfTests.Run()));return 0;}
-                if(args.Length==2 && (args[0]=="--layout-preview" || args[0]=="--zero-layout-preview")) {
+                if(args.Length==2 && (args[0]=="--layout-preview" || args[0]=="--zero-layout-preview" || args[0]=="--tray-layout-preview")) {
                     using(var preview=new ControlForm(true)) using(var capture=new System.Windows.Forms.Timer {Interval=600}) {
                         if(args[0]=="--zero-layout-preview")preview.PreviewZeroCurve();
+                        if(args[0]=="--tray-layout-preview")preview.CollapseCurve();
                         capture.Tick+=delegate {capture.Stop();using(var bitmap=new Bitmap(preview.Width,preview.Height)){preview.DrawToBitmap(bitmap,new Rectangle(0,0,preview.Width,preview.Height));bitmap.Save(args[1]);}preview.SaveLayoutReport(args[1]+".layout.json");preview.Close();};
                         preview.Shown+=delegate {capture.Start();};Application.Run(preview);
                     }

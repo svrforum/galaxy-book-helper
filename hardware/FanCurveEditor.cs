@@ -21,7 +21,7 @@ namespace GalaxyHardware
         {
             Curve=curve;profile=calibration;Curve.UpgradeForEditing(profile);
             maximum=FanCurve.Round(profile.Entries[2].ConservativeRpm);
-            DoubleBuffered=true;TabStop=true;BackColor=Color.FromArgb(22,28,38);ForeColor=Color.White;Cursor=Cursors.Hand;
+            DoubleBuffered=true;TabStop=true;BackColor=Color.FromArgb(248,250,252);ForeColor=Color.FromArgb(35,43,55);Cursor=Cursors.Hand;
             AccessibleName="팬 커브: 점을 좌우로 온도, 위아래로 RPM 조정. Shift 드래그는 전체 속도 이동. Ctrl Z 실행 취소.";
         }
         internal RectangleF Plot {get{return new RectangleF(48,27,Width-68,Height-60);}}
@@ -53,7 +53,7 @@ namespace GalaxyHardware
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);var g=e.Graphics;g.SmoothingMode=SmoothingMode.AntiAlias;
-            using(var grid=new Pen(Color.FromArgb(51,61,76)))using(var gray=new SolidBrush(Color.LightSlateGray)) {
+            using(var grid=new Pen(Color.FromArgb(224,230,238)))using(var gray=new SolidBrush(Color.LightSlateGray)) {
                 for(int t=20;t<=90;t+=10){g.DrawLine(grid,X(t),Plot.Top,X(t),Plot.Bottom);g.DrawString(t+"°",Font,gray,X(t)-11,Plot.Bottom+8);}
                 for(int rpm=0;rpm<=maximum;rpm+=1000){g.DrawLine(grid,Plot.Left,Y(rpm),Plot.Right,Y(rpm));g.DrawString(rpm.ToString(),Font,gray,3,Y(rpm)-8);}
                 g.DrawString("RPM",Font,gray,3,4);
@@ -68,8 +68,8 @@ namespace GalaxyHardware
                 }
             }
             var points=new PointF[Curve.Rpms.Length];for(int i=0;i<points.Length;i++)points[i]=new PointF(X(Curve.Temperatures[i]),Y(Curve.Rpms[i]));
-            using(var line=new Pen(Color.FromArgb(109,218,193),2.5f))g.DrawLines(line,points);
-            for(int i=0;i<points.Length;i++)using(var brush=new SolidBrush(i==Selected?Color.White:Color.FromArgb(109,218,193)))g.FillEllipse(brush,points[i].X-5,points[i].Y-5,10,10);
+            using(var line=new Pen(Color.FromArgb(49,130,246),2.5f))g.DrawLines(line,points);
+            for(int i=0;i<points.Length;i++)using(var brush=new SolidBrush(i==Selected?Color.FromArgb(20,69,140):Color.FromArgb(49,130,246)))g.FillEllipse(brush,points[i].X-5,points[i].Y-5,10,10);
             using(var red=new Pen(Color.IndianRed,1)){red.DashStyle=DashStyle.Dot;float x=X(Curve.HasZero?Curve.ZeroStopTemperature:80);g.DrawLine(red,x,Plot.Top,x,Plot.Bottom);}
         }
         protected override void OnMouseDown(MouseEventArgs e)

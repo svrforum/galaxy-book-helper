@@ -22,6 +22,9 @@ namespace GalaxyHardware
         internal object CheckEditorInteractions(FanCalibration profile)
         {
             var passed=new List<string>();
+            EditorSelfTests.Assert(PanelPosition(new System.Drawing.Rectangle(-1920,0,1920,1040),new System.Drawing.Size(560,740))==new System.Drawing.Point(-572,288),"Tray panel escaped secondary monitor bounds.");
+            EditorSelfTests.Assert(!ShowInTaskbar && FormBorderStyle==FormBorderStyle.None,"Panel uses standard window chrome.");
+            passed.Add("tray panel anchors inside negative-coordinate monitor and hides taskbar window");
             if(inlineGraph==null)throw new IOException("Curve editor failed to initialize.");
             var curve=inlineGraph.Curve;
             EditorSelfTests.Assert(curve.Version==3 && curve.Rpms.Length==8,"Legacy curve migration failed.");
@@ -70,7 +73,7 @@ namespace GalaxyHardware
                 passed.Add("invalid preset file is preserved and reported");
                 bool reserved=false;try{FanPresetStore.CheckName("평균");}catch(ArgumentException){reserved=true;}EditorSelfTests.Assert(reserved,"Built-in preset overwrite accepted.");
                 passed.Add("built-in preset names cannot be overwritten");
-                SaveLayoutReport(Path.Combine(folder,"layout.json"));var layout=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(File.ReadAllText(Path.Combine(folder,"layout.json")));EditorSelfTests.Assert((bool)layout["Success"],"Editor controls clipped or scrollbars visible.");
+                SaveLayoutReport(Path.Combine(folder,"layout.json"));var layout=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(File.ReadAllText(Path.Combine(folder,"layout.json")));EditorSelfTests.Assert((bool)layout["Success"],"Editor controls clipped or scrollbars visible: "+File.ReadAllText(Path.Combine(folder,"layout.json")));
                 passed.Add("complete editor fits without scrolling or clipped controls");
             }finally {editorPresetTestPath=null;foreach(string file in new[]{path,path+".bak",Path.Combine(folder,"layout.json")})if(File.Exists(file))File.Delete(file);if(Directory.Exists(folder))Directory.Delete(folder,false);}
             return new {Success=true,Passed=passed.Count,Cases=passed,HardwareAccess=false,UserFilesModified=false};
