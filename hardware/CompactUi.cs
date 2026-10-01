@@ -38,6 +38,7 @@ namespace GalaxyHardware
             header.Controls.Add(new Label {Text="Galaxy Helper",Font=new Font("Segoe UI",15,FontStyle.Bold),Bounds=new Rectangle(0,0,190,38)});
             measured.Font=new Font("Segoe UI",13);measured.ForeColor=accent;measured.TextAlign=ContentAlignment.MiddleRight;measured.Bounds=new Rectangle(194,0,244,38);header.Controls.Add(measured);stack.Controls.Add(header);
             Shown+=delegate {FitWithoutScroll(stack);};
+            BuildRefreshRow(stack);
             var power=Card(stack,"전력");
             BuildPowerPresets(power);
             Configure(pl1,15);Configure(pl2,20);Number(pl1,78);Number(pl2,78);

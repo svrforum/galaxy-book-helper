@@ -41,3 +41,8 @@ G-Helper의 공식 소스에서 커브의 X/Y 이동, 이웃 점 정렬, Shift �
 참고: https://github.com/seerge/g-helper/blob/54c5bd00da82e20a0361228e5758f692b3b9560b/app/Program.cs
 
 전력 프리셋도 별도로 지원합니다. 무소음(5/10W), 절전, 균형, 성능 기본값과 사용자 이름 저장·덮어쓰기·삭제를 제공합니다. 저장 위치는 %LOCALAPPDATA%\GalaxyHelper\power-presets.json이며 기존 파일은 .bak으로 백업합니다. 선택하면 슬라이더에 불러오고 실제 적용은 적용 버튼으로 수행합니다.
+
+## 화면 설정
+패널 상단에서 대상 화면, 해상도, 주사율을 선택합니다. 해상도는 현재 화면과 정확히 같은 비율이며 Windows가 열거한 모드만 표시합니다. 주사율은 지원되는 60/120Hz만 표시합니다. 해상도를 변경할 때 기존 주사율을 우선 유지하며 지원되지 않으면 지원되는 낮은 주사율을 선택합니다. 15초 유지 확인 없이 닫으면 이전 해상도·주사율로 복원합니다. 설정은 현재 Windows 세션에 적용하며 자동 시작 설정이나 DRR 설정은 변경하지 않습니다.
+검증: 현재 장비 2880×1800 및 같은 비율 6개 해상도에 Windows CDS_TEST 성공. 실제 화면 전환/시간초과 복원은 미검증.
+API 참고: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-changedisplaysettingsexw

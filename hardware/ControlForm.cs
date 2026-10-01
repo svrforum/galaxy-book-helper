@@ -400,6 +400,7 @@ namespace GalaxyHardware
             Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
             try
             {
+                if(args.Length==2 && args[0]=="--display-check"){File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(DisplayRefresh.Inspect()));return 0;}
                 if(args.Length==2 && args[0]=="--editor-self-test") {File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(EditorSelfTests.Run()));return 0;}
                 if(args.Length==2 && (args[0]=="--layout-preview" || args[0]=="--zero-layout-preview" || args[0]=="--tray-layout-preview")) {
                     using(var preview=new ControlForm(true)) using(var capture=new System.Windows.Forms.Timer {Interval=600}) {

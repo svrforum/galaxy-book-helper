@@ -58,7 +58,7 @@ namespace GalaxyHardware
             Deactivate+=delegate {if(!smokeMode)dismissTimer.Start();};
             dismissTimer.Tick+=delegate {
                 dismissTimer.Stop();
-                if(panelPinned || smokeMode || !Visible || ContainsFocus || !Enabled || OwnedForms.Length>0 || quickMenu.Visible || (presetPicker!=null && presetPicker.DroppedDown) || powerPicker.DroppedDown)return;
+                if(panelPinned || smokeMode || !Visible || ContainsFocus || !Enabled || OwnedForms.Length>0 || quickMenu.Visible || (presetPicker!=null && presetPicker.DroppedDown) || powerPicker.DroppedDown || displayPicker.DroppedDown || refreshPicker.DroppedDown || resolutionPicker.DroppedDown)return;
                 lastDismiss=DateTime.UtcNow;Hide();
             };
             KeyDown+=delegate(object sender,KeyEventArgs e){if(e.KeyCode==Keys.Escape){Hide();e.Handled=true;}};

@@ -22,6 +22,7 @@ namespace GalaxyHardware
         internal object CheckEditorInteractions(FanCalibration profile)
         {
             var passed=new List<string>();
+            var nativeMode=new DisplayRefresh.Mode{Width=2880,Height=1800};EditorSelfTests.Assert(DisplayRefresh.SameRatio(nativeMode,new DisplayRefresh.Mode{Width=1920,Height=1200})&&!DisplayRefresh.SameRatio(nativeMode,new DisplayRefresh.Mode{Width=1920,Height=1080}),"Display aspect ratio filter failed.");EditorSelfTests.Assert(refreshPicker.Items.Cast<uint>().All(h=>h==60||h==120),"Unexpected refresh option.");passed.Add("display resolutions preserve exact aspect ratio and refresh list only shows 60/120 Hz");
             powerPicker.SelectedIndex=1;EditorSelfTests.Assert(pl1.Value==5 && pl2.Value==10,"Power preset did not update sliders.");
             pl1.Value=6;EditorSelfTests.Assert(powerPicker.SelectedIndex==0,"Edited power preset remained selected.");
             string powerTest=Path.Combine(Path.GetTempPath(),"GalaxyPower-"+Guid.NewGuid().ToString("N")+".json");
