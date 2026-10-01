@@ -79,7 +79,7 @@ namespace GalaxyHardware
                 curveTemperature.ValueChanged+=delegate {if(!syncing)inlineGraph.SetPoint((int)curveTemperature.Value,curve.Rpms[inlineGraph.Selected]);};
                 curveRpm.ValueChanged+=delegate {if(!syncing)inlineGraph.SetRpm((int)curveRpm.Value);};
                 curveCutoff.ValueChanged+=delegate {if(!syncing)inlineGraph.SetZeroTemperature((int)curveCutoff.Value);};changed();
-                Line(parent,new Label {Text="드래그: 온도·RPM  /  Shift: 전체 이동  /  Ctrl+Z: 취소",ForeColor=Color.LightSlateGray},20);
+                detailsTip.SetToolTip(inlineGraph,"드래그: 온도·RPM / Shift: 전체 이동 / Ctrl+Z: 취소");
                 Line(parent,new Label {Text="실선: 요청 · 점선: 기기 지원 속도 (0 또는 약 "+Math.Max(inlineProfile.Entries[0].Fan1Peak,inlineProfile.Entries[0].Fan2Peak)+" RPM 이상)",ForeColor=Color.LightSlateGray},20);
             } catch(Exception ex) {
                 inlineGraph=null;Line(parent,new Label {Text="커브를 사용하려면 RPM 보정이 필요합니다.\n"+ex.Message,ForeColor=Color.FromArgb(85,104,127)},70);

@@ -22,6 +22,8 @@ namespace GalaxyHardware
         internal object CheckEditorInteractions(FanCalibration profile)
         {
             var passed=new List<string>();
+            using(var slider=new WattSlider("시험",pl1)){slider.ExerciseDrag(0);EditorSelfTests.Assert(pl1.Value==5,"Slider minimum failed.");slider.ExerciseDrag(340);EditorSelfTests.Assert(pl1.Value==80,"Slider maximum failed.");slider.ExerciseDrag(170);EditorSelfTests.Assert(pl1.Value==42.5m,"Slider half-watt mapping failed.");pl1.Value=15;}
+            EditorSelfTests.Assert(curveDetails.Visible,"Curve must be visible by default.");passed.Add("power slider drag maps endpoints and half-watt increments; curve starts expanded");
             EditorSelfTests.Assert(PanelPosition(new System.Drawing.Rectangle(-1920,0,1920,1040),new System.Drawing.Size(560,740))==new System.Drawing.Point(-572,288),"Tray panel escaped secondary monitor bounds.");
             EditorSelfTests.Assert(!ShowInTaskbar && FormBorderStyle==FormBorderStyle.None,"Panel uses standard window chrome.");
             passed.Add("tray panel anchors inside negative-coordinate monitor and hides taskbar window");

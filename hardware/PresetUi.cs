@@ -8,7 +8,7 @@ namespace GalaxyHardware
     sealed partial class ControlForm
     {
         readonly ComboBox presetPicker=new ComboBox();
-        readonly Button savePresetButton=new Button(),deletePresetButton=new Button();
+        readonly Button savePresetButton=new SoftButton(),deletePresetButton=new SoftButton();
         FanPresetStore userPresets;
         string editorPresetTestPath;
         string PresetStoragePath {get{return editorPresetTestPath??FanPresetStore.FilePath;}}

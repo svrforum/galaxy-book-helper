@@ -22,8 +22,8 @@ namespace GalaxyHardware
         readonly Label mmioLimits = new Label();
         readonly Label status = new SingleLineStatus();
         readonly Label fanReading = new Label();
-        readonly Button fanRefresh = new Button();
-        readonly Button fanApply = new Button(), fanAuto = new Button(), fanCap = new Button();
+        readonly Button fanRefresh = new SoftButton();
+        readonly Button fanApply = new SoftButton(), fanAuto = new SoftButton(), fanCap = new SoftButton();
         readonly NumericUpDown fanSteps = new NumericUpDown();
         readonly NumericUpDown fanTarget = new NumericUpDown();
         readonly System.Windows.Forms.Timer fanTimer = new System.Windows.Forms.Timer();
@@ -36,8 +36,8 @@ namespace GalaxyHardware
         bool fanReady;
         readonly Label fanControlStatus = new SingleLineStatus();
         bool fanBusy;
-        readonly Button apply = new Button();
-        readonly Button restore = new Button();
+        readonly Button apply = new SoftButton();
+        readonly Button restore = new SoftButton();
         readonly System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
         readonly NotifyIcon tray = new NotifyIcon();
         readonly Stopwatch sampleClock = new Stopwatch();
@@ -53,9 +53,9 @@ namespace GalaxyHardware
             previewCalibration=layoutPreview?calibration:null;
             if(layoutPreview) {
                 smokeMode=true;BuildCompactUi();tray.Visible=false;
-                measured.Text="— W   ·   — °C";fanReading.Text="팬 1  — RPM    /    팬 2  — RPM\n화면 미리보기 · 센서 연결 없음";
-                status.Text="지속 / 단기 전력을 직접 입력하거나 프리셋을 선택하세요.";
-                fanControlStatus.Text="점을 드래그해 조절한 뒤 커브 적용을 누르세요.";
+                measured.Text="— W   ·   — °C";fanReading.Text="— RPM     /     — RPM";
+                status.Text="지속 / 단기 전력";
+                fanControlStatus.Text="커브를 드래그해 조절하세요.";
                 return;
             }
             Program.CheckMachine();
@@ -66,7 +66,7 @@ namespace GalaxyHardware
                 try { mmio = new PawnDevice("IntelMCHBAR"); } catch { }
                 BuildCompactUi();
                 energy = (uint)msr.ReadMsr(0x611); sampleClock.Start();
-                status.Text = File.Exists(Program.Journal) ? "이전 복원 기록이 있습니다. 복원 후 새 제한을 적용하세요." : "조회 중 · 적용 버튼을 누르기 전에는 전력 설정을 변경하지 않습니다.";
+                status.Text = File.Exists(Program.Journal) ? "이전 복원 기록이 있습니다. 복원 후 새 제한을 적용하세요." : "전력 제한 대기";
                 RefreshReadings();
                 try { ShowFan(FanReadBridge.Cached()); } catch (Exception ex) { fanReading.Text = ex.Message; }
                 try {
@@ -79,7 +79,7 @@ namespace GalaxyHardware
                             if (minimum>fanTarget.Maximum) throw new IOException("보정된 RPM이 입력 범위를 넘습니다.");
                             fanTarget.Minimum=minimum;
                             fanTarget.Value=Math.Min(fanTarget.Maximum,(decimal)(Math.Ceiling(profile.Entries[1].ConservativeRpm/100.0)*100));
-                            fanControlStatus.Text="커브 조절 가능 · 최소 목표 "+minimum+" RPM · 적용 전에는 변경되지 않습니다.";
+                            fanControlStatus.Text="자동 냉각 중";
                         } catch (Exception ex) { fanControlStatus.Text="RPM 목표: "+ex.Message; }
                     }
                 } catch (Exception ex) { fanReady = false; fanControlStatus.Text = ex.Message; }
@@ -94,7 +94,7 @@ namespace GalaxyHardware
         void ShowFan(FanSample sample)
         {
             fanReading.Text = sample.Success
-                ? String.Format("팬 1  {0:N0} RPM    /    팬 2  {1:N0} RPM\n{2:MM-dd HH:mm:ss} 측정 · {3}", sample.Fan1Rpm, sample.Fan2Rpm, sample.SampleUtc.ToLocalTime(), sample.FreshRequestCompleted ? "자동 갱신" : "저장된 측정값")
+                ? String.Format("{0:N0} RPM     /     {1:N0} RPM", sample.Fan1Rpm, sample.Fan2Rpm, sample.SampleUtc.ToLocalTime(), sample.FreshRequestCompleted ? "자동 갱신" : "저장된 측정값")
                 : "팬 조회 실패: " + sample.NtStatus + " · RPM 알 수 없음";
         }
         void RefreshFan(bool silent = false)
@@ -172,7 +172,7 @@ namespace GalaxyHardware
             if (fanClient==null) return;
             try {
                 var state=fanClient.Heartbeat(fanStep);
-                fanReading.Text=String.Format("팬 1 {0:N0} / 팬 2 {1:N0} RPM · {2}°C\n{3:HH:mm:ss} 측정 · 지속 제어",state.Fan1Rpm,state.Fan2Rpm,state.TemperatureC,state.SampleUtc.ToLocalTime());
+                fanReading.Text=String.Format("{0:N0} RPM     /     {1:N0} RPM",state.Fan1Rpm,state.Fan2Rpm,state.TemperatureC,state.SampleUtc.ToLocalTime());
                 fanControlStatus.Text=fanGoal.HasValue ? "목표 " + fanGoal + " RPM · 실제 속도에 맞춰 조절 중" : DescribeFanStep(fanStep)+" · 자동 제어로 복귀하면 해제됩니다.";
                 if (fanGoal.HasValue) {
                     fanStep=fanCapPolicy.Observe(state,DateTime.UtcNow);
