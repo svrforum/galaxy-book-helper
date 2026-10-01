@@ -17,14 +17,14 @@ namespace GalaxyHardware
         readonly Color accent=Color.FromArgb(49,130,246);
         FlowLayoutPanel Card(FlowLayoutPanel parent,string title)
         {
-            var card=new RoundedCard {Width=520,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(8),BackColor=surface,Margin=new Padding(0,0,0,6)};
+            var card=new RoundedCard {Width=424,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(8),BackColor=surface,Margin=new Padding(0,0,0,6)};
             parent.Controls.Add(card);
             var heading=new Panel();heading.Controls.Add(new PictureBox {Image=PanelIcons.Draw(title=="전력"?"power":"fan",accent,18),Bounds=new Rectangle(0,1,18,18)});heading.Controls.Add(new Label {Text=title,ForeColor=Color.FromArgb(51,61,75),Font=new Font(Font,FontStyle.Bold),Bounds=new Rectangle(26,1,200,20)});Line(card,heading,24);
             return card;
         }
         static void Line(FlowLayoutPanel parent,Control control,int height)
-        { control.Size=new Size(488,height); control.Margin=new Padding(0,0,0,3); parent.Controls.Add(control); }
-        FlowLayoutPanel Row() { return new FlowLayoutPanel {Width=488,Height=36,Margin=new Padding(0,0,0,3),WrapContents=false}; }
+        { control.Size=new Size(408,height); control.Margin=new Padding(0,0,0,3); parent.Controls.Add(control); }
+        FlowLayoutPanel Row() { return new FlowLayoutPanel {Width=408,Height=36,Margin=new Padding(0,0,0,3),WrapContents=false}; }
         Button QuickButton(string text,int width,Action action)
         { var b=new SoftButton(); Style(b,text,width); b.FlatAppearance.BorderSize=0; b.Margin=new Padding(0,0,6,0); b.Click+=delegate { action(); }; return b; }
         void Number(NumericUpDown n,int width)
@@ -32,24 +32,24 @@ namespace GalaxyHardware
         void BuildCompactUi()
         {
             Text="Galaxy Helper";Font=new Font("맑은 고딕",9.5f);BackColor=Color.FromArgb(242,244,247);ForeColor=Color.FromArgb(35,43,55);
-            AutoScaleMode=AutoScaleMode.Dpi;ClientSize=new Size(560,700);MinimumSize=new Size(556,0);FormBorderStyle=FormBorderStyle.None;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;
+            AutoScaleMode=AutoScaleMode.Dpi;ClientSize=new Size(440,640);MinimumSize=new Size(440,0);FormBorderStyle=FormBorderStyle.None;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;
             var stack=new FlowLayoutPanel {Dock=DockStyle.Fill,Padding=new Padding(8),FlowDirection=FlowDirection.TopDown,WrapContents=false,AutoScroll=false};Controls.Add(stack);
-            var header=new Panel {Width=520,Height=38,Margin=new Padding(0,0,0,6)};
-            header.Controls.Add(new Label {Text="Galaxy Helper",Font=new Font("Segoe UI",15,FontStyle.Bold),Bounds=new Rectangle(0,0,190,38)});
-            measured.Font=new Font("Segoe UI",13);measured.ForeColor=accent;measured.TextAlign=ContentAlignment.MiddleRight;measured.Bounds=new Rectangle(194,0,244,38);header.Controls.Add(measured);stack.Controls.Add(header);
+            var header=new Panel {Width=424,Height=32,Margin=new Padding(0,0,0,6)};
+            header.Controls.Add(new Label {Text="Galaxy Helper",Font=new Font("Segoe UI",13,FontStyle.Bold),Bounds=new Rectangle(0,0,150,32)});
+            measured.Font=new Font("Segoe UI",11);measured.ForeColor=accent;measured.TextAlign=ContentAlignment.MiddleRight;measured.Bounds=new Rectangle(146,0,200,32);header.Controls.Add(measured);stack.Controls.Add(header);
             Shown+=delegate {FitWithoutScroll(stack);};
-            BuildRefreshRow(stack);
+            BuildRefreshRow(stack);BuildBrightnessRow(stack);
             var power=Card(stack,"전력");
             BuildPowerPresets(power);
             Configure(pl1,15);Configure(pl2,20);Number(pl1,78);Number(pl2,78);
-            var watts=new Panel {Width=488,Height=100,Margin=new Padding(0,4,0,4)};
-            watts.Controls.Add(new WattSlider("지속 전력",pl1){Location=new Point(0,0),Font=Font});watts.Controls.Add(new WattSlider("단기 전력",pl2){Location=new Point(0,50),Font=Font});
-            Style(apply,"적용",120);apply.BackColor=accent;apply.ForeColor=Color.White;apply.Location=new Point(362,9);watts.Controls.Add(apply);Style(restore,"원래대로",120);restore.Location=new Point(362,59);watts.Controls.Add(restore);power.Controls.Add(watts);
+            var watts=new Panel {Width=408,Height=84,Margin=new Padding(0,4,0,4)};
+            watts.Controls.Add(new WattSlider("지속 전력",pl1){Location=new Point(0,0),Width=194,Font=Font});watts.Controls.Add(new WattSlider("단기 전력",pl2){Location=new Point(212,0),Width=194,Font=Font});
+            Style(apply,"전력 적용",194);apply.BackColor=accent;apply.ForeColor=Color.White;apply.Location=new Point(0,51);watts.Controls.Add(apply);Style(restore,"원래대로",194);restore.Location=new Point(212,51);watts.Controls.Add(restore);power.Controls.Add(watts);
             status.ForeColor=Color.FromArgb(107,118,132);status.AutoEllipsis=true;Line(power,status,20);
-            var fan=Card(stack,"팬 속도");fanReading.Font=new Font("Segoe UI",15,FontStyle.Bold);Line(fan,fanReading,36);
-            curveDetails=new FlowLayoutPanel {Width=488,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,FlowDirection=FlowDirection.TopDown,WrapContents=false,Margin=Padding.Empty};fan.Controls.Add(curveDetails);BuildInlineCurve(curveDetails);curveDetails.Visible=true;
-            var controls=Row();Style(curveButton,inlineGraph!=null && inlineGraph.Curve.IsZeroHold?"0 RPM + 5/10W 적용":"커브 적용",155);curveButton.BackColor=accent;curveButton.ForeColor=Color.White;curveButton.Click+=delegate {ApplyInlineCurve();};controls.Controls.Add(curveButton);
-            Style(fanAuto,"자동으로",115);controls.Controls.Add(fanAuto);Style(fanRefresh,"새로고침",88);controls.Controls.Add(fanRefresh);Style(fanSetup,"정밀 보정",94);controls.Controls.Add(fanSetup);fan.Controls.Add(controls);
+            var fan=Card(stack,"팬 속도");fanReading.Font=new Font("Segoe UI",13,FontStyle.Bold);Line(fan,fanReading,28);
+            curveDetails=new FlowLayoutPanel {Width=408,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,FlowDirection=FlowDirection.TopDown,WrapContents=false,Margin=Padding.Empty};fan.Controls.Add(curveDetails);BuildInlineCurve(curveDetails);curveDetails.Visible=true;
+            var controls=Row();Style(curveButton,inlineGraph!=null && inlineGraph.Curve.IsZeroHold?"0 RPM + 5/10W 적용":"커브 적용",144);curveButton.BackColor=accent;curveButton.ForeColor=Color.White;curveButton.Click+=delegate {ApplyInlineCurve();};controls.Controls.Add(curveButton);
+            Style(fanAuto,"자동",74);controls.Controls.Add(fanAuto);Style(fanRefresh,"조회",68);controls.Controls.Add(fanRefresh);Style(fanSetup,"보정",98);controls.Controls.Add(fanSetup);fan.Controls.Add(controls);
             fanControlStatus.ForeColor=Color.FromArgb(107,118,132);fanControlStatus.AutoEllipsis=true;Line(fan,fanControlStatus,24);
             fanSetup.Click+=delegate {OpenFanSetup();};fanSetup.AccessibleName="팬 정밀 보정 및 검증";
             detailsTip.SetToolTip(fanSetup,"팬 단계 측정 · RPM 목표 유지 · 자동 복귀 검증 · 약 7~9분");

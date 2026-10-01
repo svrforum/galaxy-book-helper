@@ -42,8 +42,8 @@ namespace GalaxyHardware
         }
         void BuildPowerPresets(FlowLayoutPanel parent)
         {
-            var row=Row();powerPicker.DropDownStyle=ComboBoxStyle.DropDownList;powerPicker.FlatStyle=FlatStyle.Flat;powerPicker.BackColor=Color.FromArgb(242,244,247);powerPicker.Width=278;powerPicker.Margin=new Padding(0,3,8,0);powerPicker.AccessibleName="전력 프리셋";row.Controls.Add(powerPicker);
-            Style(powerSave,"이름으로 저장",112);Style(powerDelete,"삭제",76);row.Controls.Add(powerSave);row.Controls.Add(powerDelete);parent.Controls.Add(row);
+            var row=Row();powerPicker.DropDownStyle=ComboBoxStyle.DropDownList;powerPicker.FlatStyle=FlatStyle.Flat;powerPicker.BackColor=Color.FromArgb(242,244,247);powerPicker.Width=218;powerPicker.Margin=new Padding(0,3,8,0);powerPicker.AccessibleName="전력 프리셋";row.Controls.Add(powerPicker);
+            Style(powerSave,"저장",96);Style(powerDelete,"삭제",64);row.Controls.Add(powerSave);row.Controls.Add(powerDelete);parent.Controls.Add(row);
             try {powerPresets=smokeMode?new PowerPresetStore{Version=1,Items=new List<PowerPreset>()}:PowerPresetStore.Load(PowerPresetStore.PathName);}catch(Exception ex){powerSave.Enabled=false;status.Text="프리셋 읽기 실패: "+ex.Message;}
             RefreshPowerPresets();
             powerPicker.SelectedIndexChanged+=delegate {if(pickingPower)return;var p=powerPicker.SelectedItem as PowerPreset;if(p==null)return;pickingPower=true;pl1.Value=p.Sustained;pl2.Value=p.Burst;pickingPower=false;powerDelete.Enabled=powerPicker.SelectedIndex>=5;status.Text="불러옴 · 적용하면 반영됩니다.";};

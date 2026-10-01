@@ -49,10 +49,10 @@ namespace GalaxyHardware
         {
             FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;StartPosition=FormStartPosition.Manual;KeyPreview=true;
             panelIcon=PanelIcons.Tray();Icon=panelIcon;tray.Icon=panelIcon;
-            var pin=QuickButton("",30,delegate {});pin.Location=new Point(448,1);
+            var pin=QuickButton("",30,delegate {});pin.Location=new Point(350,1);
             pin.AccessibleName="패널 고정";pin.Image=PanelIcons.Draw("pin",ForeColor);pin.BackColor=surface;
             pin.Click+=delegate {panelPinned=!panelPinned;TopMost=panelPinned;pin.BackColor=panelPinned?Color.FromArgb(210,228,255):surface;detailsTip.SetToolTip(pin,panelPinned?"고정 해제":"패널 고정");};
-            var close=QuickButton("",30,delegate {Hide();});close.Location=new Point(486,1);close.Image=PanelIcons.Draw("close",ForeColor);close.BackColor=surface;close.AccessibleName="트레이로 접기";
+            var close=QuickButton("",30,delegate {Hide();});close.Location=new Point(388,1);close.Image=PanelIcons.Draw("close",ForeColor);close.BackColor=surface;close.AccessibleName="트레이로 접기";
             detailsTip.SetToolTip(pin,"패널 고정");detailsTip.SetToolTip(close,"트레이로 접기 · 제어는 계속됩니다");header.Controls.Add(pin);header.Controls.Add(close);
             Shown+=delegate {PositionPanel();};
             Deactivate+=delegate {if(!smokeMode)dismissTimer.Start();};

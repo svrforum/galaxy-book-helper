@@ -88,9 +88,9 @@ namespace GalaxyHardware
         }
         void BuildRefreshRow(FlowLayoutPanel stack)
         {
-            var row=new RoundedCard{Width=520,Height=52,Padding=new Padding(14,10,14,10),BackColor=surface,Margin=new Padding(0,0,0,6)};
-            resolutionPicker.DropDownStyle=ComboBoxStyle.DropDownList;resolutionPicker.FlatStyle=FlatStyle.Flat;resolutionPicker.Width=205;resolutionPicker.AccessibleName="같은 화면 비율 해상도";
-            displayPicker.DropDownStyle=refreshPicker.DropDownStyle=ComboBoxStyle.DropDownList;displayPicker.FlatStyle=refreshPicker.FlatStyle=FlatStyle.Flat;displayPicker.Width=130;refreshPicker.Width=130;displayPicker.AccessibleName="주사율 변경 대상 화면";refreshPicker.AccessibleName="화면 주사율";
+            var row=new RoundedCard{Width=424,Height=44,Padding=new Padding(8,7,8,7),BackColor=surface,Margin=new Padding(0,0,0,6)};
+            resolutionPicker.DropDownStyle=ComboBoxStyle.DropDownList;resolutionPicker.FlatStyle=FlatStyle.Flat;resolutionPicker.Width=170;resolutionPicker.AccessibleName="같은 화면 비율 해상도";
+            displayPicker.DropDownStyle=refreshPicker.DropDownStyle=ComboBoxStyle.DropDownList;displayPicker.FlatStyle=refreshPicker.FlatStyle=FlatStyle.Flat;displayPicker.Width=110;refreshPicker.Width=96;displayPicker.AccessibleName="주사율 변경 대상 화면";refreshPicker.AccessibleName="화면 주사율";
             displayPicker.FormattingEnabled=true;displayPicker.Format+=delegate(object sender,ListControlConvertEventArgs e){string name=e.ListItem as string;var screens=Screen.AllScreens;int index=Array.FindIndex(screens,x=>x.DeviceName==name);e.Value="화면 "+(index+1)+(index>=0 && screens[index].Primary?" · 기본":"");};
             refreshPicker.Format+=delegate(object sender,ListControlConvertEventArgs e){e.Value=e.ListItem+" Hz";};refreshPicker.FormattingEnabled=true;
             row.Controls.Add(displayPicker);row.Controls.Add(resolutionPicker);row.Controls.Add(refreshPicker);stack.Controls.Add(row);

@@ -24,13 +24,13 @@ namespace GalaxyHardware
         void BuildPresetRow(FlowLayoutPanel parent)
         {
             var row=Row();
-            presetPicker.DropDownStyle=ComboBoxStyle.DropDownList;presetPicker.Width=278;presetPicker.Margin=new Padding(0,3,8,0);presetPicker.AccessibleName="팬 커브 프리셋";
+            presetPicker.DropDownStyle=ComboBoxStyle.DropDownList;presetPicker.Width=218;presetPicker.Margin=new Padding(0,3,8,0);presetPicker.AccessibleName="팬 커브 프리셋";
             presetPicker.BackColor=Color.FromArgb(242,244,247);presetPicker.ForeColor=ForeColor;presetPicker.FlatStyle=FlatStyle.Flat;
             presetPicker.DrawMode=DrawMode.OwnerDrawFixed;
 presetPicker.DrawItem+=delegate(object sender,DrawItemEventArgs e){if(e.Index<0)return;using(var brush=new SolidBrush((e.State & DrawItemState.Selected)!=0?Color.FromArgb(221,235,255):presetPicker.BackColor))e.Graphics.FillRectangle(brush,e.Bounds);TextRenderer.DrawText(e.Graphics,presetPicker.Items[e.Index].ToString(),Font,e.Bounds,ForeColor,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);};
             row.Controls.Add(presetPicker);
-            Style(savePresetButton,"이름으로 저장",112);row.Controls.Add(savePresetButton);
-            Style(deletePresetButton,"삭제",76);row.Controls.Add(deletePresetButton);
+            Style(savePresetButton,"저장",96);row.Controls.Add(savePresetButton);
+            Style(deletePresetButton,"삭제",64);row.Controls.Add(deletePresetButton);
             try {userPresets=previewCalibration==null?FanPresetStore.Load(PresetStoragePath,inlineProfile):new FanPresetStore {Version=1,Items=new System.Collections.Generic.List<NamedFanPreset>()};}
             catch(Exception ex){userPresets=null;savePresetButton.Enabled=false;fanControlStatus.Text="프리셋 읽기 실패: "+ex.Message;}
             RefreshPresetPicker(null);

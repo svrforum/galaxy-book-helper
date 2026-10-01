@@ -73,18 +73,18 @@ namespace GalaxyHardware
                 FanCurve curve;
                 try {curve=previewCalibration==null?FanCurve.Load(inlineProfile):FanCurve.Default(inlineProfile);}
                 catch(Exception ex) {curve=FanCurve.Default(inlineProfile);fanControlStatus.Text="이전 커브를 읽을 수 없어 기본 커브를 표시합니다: "+ex.Message;}
-                inlineGraph=new CurveGraph(curve,inlineProfile){Width=488,Height=190,Margin=new Padding(0,0,0,6)};
+                inlineGraph=new CurveGraph(curve,inlineProfile){Width=408,Height=145,Margin=new Padding(0,0,0,6)};
                 savedCurveSignature=curve.Signature;
                 BuildPresetRow(parent);
                 parent.Controls.Add(inlineGraph);
                 var row=Row();row.Height=32;
-                curveSelection.Width=43;curveSelection.Padding=new Padding(0,4,0,0);curveSelection.ForeColor=Color.FromArgb(85,104,127);row.Controls.Add(curveSelection);
-                curveTemperature.Minimum=20;curveTemperature.Maximum=90;curveTemperature.Increment=1;Number(curveTemperature,61);curveTemperature.AccessibleName="선택점 온도";row.Controls.Add(curveTemperature);
+                curveSelection.Width=26;curveSelection.Padding=new Padding(0,4,0,0);curveSelection.ForeColor=Color.FromArgb(85,104,127);row.Controls.Add(curveSelection);
+                curveTemperature.Minimum=20;curveTemperature.Maximum=90;curveTemperature.Increment=1;Number(curveTemperature,53);curveTemperature.AccessibleName="선택점 온도";row.Controls.Add(curveTemperature);
                 row.Controls.Add(new Label {Text="°C",Width=22,Padding=new Padding(0,4,0,0)});
-                curveRpm.Minimum=0;curveRpm.Maximum=FanCurve.Round(inlineProfile.Entries[2].ConservativeRpm);curveRpm.Increment=50;Number(curveRpm,82);curveRpm.AccessibleName="선택점 RPM";row.Controls.Add(curveRpm);
+                curveRpm.Minimum=0;curveRpm.Maximum=FanCurve.Round(inlineProfile.Entries[2].ConservativeRpm);curveRpm.Increment=50;Number(curveRpm,68);curveRpm.AccessibleName="선택점 RPM";row.Controls.Add(curveRpm);
                 row.Controls.Add(new Label {Text="RPM",Width=36,Padding=new Padding(0,4,0,0)});
-                row.Controls.Add(new Label {Text="정지 해제",Width=67,Padding=new Padding(0,4,0,0),ForeColor=Color.LightSlateGray});
-                curveCutoff.Minimum=45;curveCutoff.Maximum=90;curveCutoff.Value=90;Number(curveCutoff,56);curveCutoff.AccessibleName="팬 정지 해제 온도";row.Controls.Add(curveCutoff);
+                row.Controls.Add(new Label {Text="정지 해제",Width=54,Padding=new Padding(0,4,0,0),ForeColor=Color.LightSlateGray});
+                curveCutoff.Minimum=45;curveCutoff.Maximum=90;curveCutoff.Value=90;Number(curveCutoff,48);curveCutoff.AccessibleName="팬 정지 해제 온도";row.Controls.Add(curveCutoff);
                 row.Controls.Add(new Label {Text="°C",Width=22,Padding=new Padding(0,4,0,0)});parent.Controls.Add(row);
                 bool syncing=false;
                 Action changed=delegate {
