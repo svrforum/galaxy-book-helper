@@ -76,8 +76,9 @@ namespace GalaxyHardware
         readonly BatteryMonitor batteryMonitor=new BatteryMonitor();
         void BuildBatterySummary(Panel header)
         {
-            batterySummary.Bounds=new System.Drawing.Rectangle(0,31,424,18);batterySummary.Font=new System.Drawing.Font(Font.FontFamily,8.5f);batterySummary.ForeColor=System.Drawing.Color.FromArgb(85,104,127);
-            batterySummary.Text="배터리 조회 중…";header.Controls.Add(batterySummary);header.Height=50;
+            foreach(Control item in header.Controls)if(item is Label)item.Height=20;
+            batterySummary.Bounds=new System.Drawing.Rectangle(0,20,344,16);batterySummary.Font=new System.Drawing.Font(Font.FontFamily,8.5f);batterySummary.ForeColor=System.Drawing.Color.FromArgb(85,104,127);
+            batterySummary.Text="배터리 조회 중…";header.Controls.Add(batterySummary);header.Height=36;
             Action refresh=delegate {
                 try {var r=batteryMonitor.Read();batterySummary.Text=BatteryMonitor.Text(r);detailsTip.SetToolTip(batterySummary,"배터리 방전 기준 전체 소비 전력입니다. 콘센트 입력 전력은 아닙니다.\n남은 시간은 최근 1분 평균 방전량으로 계산한 추정이며 작업·밝기에 따라 달라집니다.\n남은 용량: "+(r.RemainingWh.HasValue?r.RemainingWh.Value.ToString("0.0")+" Wh":"조회 불가"));}
                 catch(Exception ex){batterySummary.Text="배터리 정보 조회 불가";detailsTip.SetToolTip(batterySummary,ex.Message);}
