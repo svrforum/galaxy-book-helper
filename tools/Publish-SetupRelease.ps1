@@ -27,25 +27,25 @@ $p=Start-Process $setup -ArgumentList @('--verify-package',$report) -WindowStyle
 if($p.ExitCode -ne 0 -or !(Test-Path $report)){throw 'Setup embedded package verification failed.'}
 $name="GalaxyHelper-$Tag-Setup.exe"
 Copy-Item $setup (Join-Path $folder $name)
-Copy-Item (Join-Path $root 'packaging/FIRST-START.ko.md') (Join-Path $folder '시작안내.ko.md')
+Copy-Item (Join-Path $root 'packaging/FIRST-START.ko.md') (Join-Path $folder 'FIRST-START.ko.md')
 $hashLines=@()
 foreach($asset in $release.assets){
- if($asset.name -eq 'SHA256SUMS.txt'){continue}
+ if($asset.name -in @('SHA256SUMS.txt',$name,'FIRST-START.ko.md')){continue}
  $path=Join-Path $folder $asset.name
  if([IO.Path]::GetFileName($asset.name) -ne $asset.name){throw 'Unsafe remote asset name.'}
  Invoke-WebRequest "$api/releases/assets/$($asset.id)" -Headers (@{Authorization=$headers.Authorization;Accept='application/octet-stream'}) -OutFile $path
  $hashLines+=((Get-FileHash $path).Hash.ToLowerInvariant()+'  '+$asset.name)
 }
-foreach($file in @($name,'시작안내.ko.md')){$hashLines+=((Get-FileHash (Join-Path $folder $file)).Hash.ToLowerInvariant()+'  '+$file)}
+foreach($file in @($name,'FIRST-START.ko.md')){$hashLines+=((Get-FileHash (Join-Path $folder $file)).Hash.ToLowerInvariant()+'  '+$file)}
 [IO.File]::WriteAllLines((Join-Path $folder 'SHA256SUMS.txt'),$hashLines,(New-Object Text.UTF8Encoding $false))
-foreach($file in @($name,'시작안내.ko.md','SHA256SUMS.txt')){
+foreach($file in @($name,'FIRST-START.ko.md','SHA256SUMS.txt')){
  $old=@($release.assets | Where-Object {$_.name -eq $file})
  foreach($asset in $old){Invoke-RestMethod "$api/releases/assets/$($asset.id)" -Method Delete -Headers $headers | Out-Null}
  $uri=$release.upload_url.Split('{')[0]+'?name='+[Uri]::EscapeDataString($file)
  Invoke-RestMethod $uri -Method Post -Headers $headers -ContentType 'application/octet-stream' -InFile (Join-Path $folder $file) | Out-Null
 }
 $assets=(Invoke-RestMethod "$api/releases/$($release.id)" -Headers $headers).assets
-foreach($file in @($name,'시작안내.ko.md','SHA256SUMS.txt')){if(!($assets | Where-Object {$_.name -eq $file -and $_.size -eq (Get-Item (Join-Path $folder $file)).Length})){throw 'Uploaded release asset size mismatch.'}}
+foreach($file in @($name,'FIRST-START.ko.md','SHA256SUMS.txt')){if(!($assets | Where-Object {$_.name -eq $file -and $_.size -eq (Get-Item (Join-Path $folder $file)).Length})){throw 'Uploaded release asset size mismatch.'}}
 $body=@{draft=$false;prerelease=$true;body=[IO.File]::ReadAllText((Join-Path $root "packaging/RELEASE-NOTES-$Tag.ko.md"))}|ConvertTo-Json
 $published=Invoke-RestMethod "$api/releases/$($release.id)" -Method Patch -Headers $headers -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($body))
 Write-Output $published.html_url

@@ -1,6 +1,6 @@
 # Galaxy Book Helper v0.2.0-experimental
 
-**처음 사용하는 분은 `GalaxyHelper-v0.2.0-experimental-Setup.exe` 하나를 받으세요.** 관리자 실행과 필요한 구성 요소 설치를 안내합니다. 자세한 순서는 함께 올린 `시작안내.ko.md`에 있습니다.
+**처음 사용하는 분은 `GalaxyHelper-v0.2.0-experimental-Setup.exe` 하나를 받으세요.** 관리자 실행과 필요한 구성 요소 설치를 안내합니다. 자세한 순서는 함께 올린 시작 안내 `FIRST-START.ko.md`에 있습니다.
 
 대상: **Galaxy Book6 Pro - PAMB / Core Ultra X7 358H / BIOS PAMB.1.5.74.371**, Windows 11 x64. 다른 모델·BIOS는 지원하지 않습니다.
 
