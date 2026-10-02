@@ -17,7 +17,7 @@ try {
  if(!$pawn){
   if([Windows.Forms.MessageBox]::Show('전력·온도 조회에 필요한 공식 서명 PawnIO 2.2.0을 GitHub에서 내려받아 설치합니다. 진행할까요?','Galaxy Helper','YesNo','Information') -ne 'Yes'){exit 0}
   $setup=Join-Path $root 'PawnIO_setup.exe'
-  Invoke-WebRequest 'https://github.com/namazso/PawnIO/releases/download/2.2.0/PawnIO_setup.exe' -OutFile $setup -UseBasicParsing
+  Invoke-WebRequest 'https://github.com/namazso/PawnIO.Setup/releases/download/2.2.0/PawnIO_setup.exe' -OutFile $setup -UseBasicParsing
   if((Get-FileHash $setup).Hash -ne '1F519A22E47187F70A1379A48CA604981C4FCF694F4E65B734AAA74A9FBA3032' -or (Get-AuthenticodeSignature $setup).Status -ne 'Valid'){throw 'PawnIO 파일 또는 서명을 확인하지 못했습니다.'}
   $p=Start-Process $setup -Wait -PassThru
   if($p.ExitCode -notin @(0,3010) -or !(Get-Service PawnIO -ErrorAction SilentlyContinue)){throw 'PawnIO 설치가 완료되지 않았습니다.'}
