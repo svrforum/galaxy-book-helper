@@ -93,6 +93,19 @@ namespace GalaxyHardware
                 SaveLayoutReport(Path.Combine(folder,"layout.json"));var layout=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(File.ReadAllText(Path.Combine(folder,"layout.json")));EditorSelfTests.Assert((bool)layout["Success"],"Editor controls clipped or scrollbars visible: "+File.ReadAllText(Path.Combine(folder,"layout.json")));
                 passed.Add("complete editor fits without scrolling or clipped controls");
             }finally {editorPresetTestPath=null;foreach(string file in new[]{path,path+".bak",Path.Combine(folder,"layout.json")})if(File.Exists(file))File.Delete(file);if(Directory.Exists(folder))Directory.Delete(folder,false);}
+            try {
+                smokeMode=false;
+                inlineGraph.ExerciseKey(Keys.Up);
+                EditorSelfTests.Assert(!curveEditDelay.Enabled,"Idle editor started applying hardware changes.");
+                fanClient=new FanControlClient(); // No request is sent by this offline test.
+                fanCurvePolicy=new FanCurvePolicy(profile,FanPresetStore.Copy(inlineGraph.Curve),35);
+                inlineGraph.ExerciseKey(Keys.Up);
+                EditorSelfTests.Assert(curveEditDelay.Enabled,"Active curve edit did not queue reapplication.");
+                curveEditDelay.Stop();
+                inlineGraph.ExerciseKey(Keys.Control|Keys.Right);
+                EditorSelfTests.Assert(!curveEditDelay.Enabled,"Selecting a point incorrectly reapplies the curve.");
+                passed.Add("active curve edits queue reapplication; idle edits and selection do not start hardware control");
+            } finally {smokeMode=true;curveEditDelay.Stop();fanCurvePolicy=null;if(fanClient!=null){fanClient.Dispose();fanClient=null;}}
             return new {Success=true,Passed=passed.Count,Cases=passed,HardwareAccess=false,UserFilesModified=false};
         }
     }

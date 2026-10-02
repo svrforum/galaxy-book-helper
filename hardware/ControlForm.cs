@@ -395,7 +395,7 @@ namespace GalaxyHardware
             if (disposing && !hardwareDisposed)
             {
                 hardwareDisposed = true; StopFan(); fanTimer.Dispose(); timer.Dispose(); tray.Dispose();
-                brightnessDelay.Dispose();detailsTip.Dispose();dismissTimer.Dispose();if(panelIcon!=null)panelIcon.Dispose();
+                brightnessDelay.Dispose();curveEditDelay.Dispose();detailsTip.Dispose();dismissTimer.Dispose();if(panelIcon!=null)panelIcon.Dispose();
                 if (mmio != null) mmio.Dispose(); if(msr!=null) msr.Dispose();
             }
             base.Dispose(disposing);

@@ -11,6 +11,9 @@ namespace GalaxyHardware
         CurveGraph inlineGraph;
         FanCalibration inlineProfile;
         string savedCurveSignature;
+        readonly System.Windows.Forms.Timer curveEditDelay=new System.Windows.Forms.Timer {Interval=500};
+        bool curveEditTimerAttached;
+        string observedCurveSignature;
         Label curveSelection=new Label();
         NumericUpDown curveTemperature=new NumericUpDown(),curveRpm=new NumericUpDown(),curveCutoff=new NumericUpDown();
         bool fanReadInFlight;
@@ -75,6 +78,16 @@ namespace GalaxyHardware
                 catch(Exception ex) {curve=FanCurve.Default(inlineProfile);fanControlStatus.Text="이전 커브를 읽을 수 없어 기본 커브를 표시합니다: "+ex.Message;}
                 inlineGraph=new CurveGraph(curve,inlineProfile){Width=408,Height=145,Margin=new Padding(0,0,0,6)};
                 savedCurveSignature=curve.Signature;
+                observedCurveSignature=curve.Signature;
+                if(!curveEditTimerAttached) {
+                    curveEditTimerAttached=true;
+                    curveEditDelay.Tick+=delegate {
+                        if(hardwareDisposed || inlineGraph==null || fanClient==null || fanCurvePolicy==null){curveEditDelay.Stop();return;}
+                        if(fanBusy || inlineGraph.Capture)return;
+                        curveEditDelay.Stop();
+                        if(inlineGraph.Curve.Signature!=fanCurvePolicy.Snapshot.Signature)ApplyInlineCurve();
+                    };
+                }
                 BuildPresetRow(parent);
                 parent.Controls.Add(inlineGraph);
                 var row=Row();row.Height=32;
@@ -90,12 +103,16 @@ namespace GalaxyHardware
                 Action changed=delegate {
                     syncing=true;curveSelection.Text="점 "+(inlineGraph.Selected+1);curveTemperature.Value=curve.Temperatures[inlineGraph.Selected];curveRpm.Value=curve.Rpms[inlineGraph.Selected];curveCutoff.Value=curve.ZeroStopTemperature;curveCutoff.Enabled=curve.HasZero;syncing=false;
                     curveButton.Text=curve.HasZero?"커브 + 5/10W 적용":curve.Signature==savedCurveSignature?"커브 적용":"변경한 커브 적용";
+                    if(observedCurveSignature!=curve.Signature) {
+                        observedCurveSignature=curve.Signature;
+                        if(!smokeMode && fanClient!=null && fanCurvePolicy!=null){curveEditDelay.Stop();curveEditDelay.Start();curveButton.Text="변경 반영 대기…";}
+                    }
                 };
                 inlineGraph.SelectionChanged+=changed;
                 curveTemperature.ValueChanged+=delegate {if(!syncing)inlineGraph.SetPoint((int)curveTemperature.Value,curve.Rpms[inlineGraph.Selected]);};
                 curveRpm.ValueChanged+=delegate {if(!syncing)inlineGraph.SetRpm((int)curveRpm.Value);};
                 curveCutoff.ValueChanged+=delegate {if(!syncing)inlineGraph.SetZeroTemperature((int)curveCutoff.Value);};changed();
-                detailsTip.SetToolTip(inlineGraph,"드래그: 온도·RPM / Shift: 전체 이동 / Ctrl+Z: 취소");
+                detailsTip.SetToolTip(inlineGraph,"드래그: 온도·RPM / Shift: 전체 이동 / Ctrl+Z: 취소\n커브 제어 중에는 편집 후 자동 반영합니다. 자동 냉각 중에는 적용 버튼을 누르세요.");
                 Line(parent,new Label {Text="실선: 요청 · 점선: 기기 지원 속도 (0 또는 약 "+Math.Max(inlineProfile.Entries[0].Fan1Peak,inlineProfile.Entries[0].Fan2Peak)+" RPM 이상)",ForeColor=Color.LightSlateGray},20);
             } catch(Exception ex) {
                 inlineGraph=null;Line(parent,new Label {Text="시작할 때 짧은 준비 상태 검사를 수행합니다.\n정확한 RPM 커브가 필요하면 ‘정밀 보정’을 실행하세요.\n"+ex.Message,ForeColor=Color.FromArgb(85,104,127)},85);

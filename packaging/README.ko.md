@@ -1,6 +1,8 @@
 # 단일 EXE 배포 (실험용)
 
-`Build-SingleExe.ps1`은 빌드된 앱, PawnIO 설치 프로그램과 모듈, 0.5 팬 드라이버 및 **공개 인증서**를 `artifacts/GalaxyHelper-Setup.exe` 하나에 포함합니다. 개인키, 사용자 설정, 기기별 RPM 보정값은 포함하지 않습니다.
+`Build-SingleExe.ps1`은 빌드된 앱과 PawnIO 모듈, 0.5 팬 드라이버 및 **공개 인증서**를 `artifacts/GalaxyHelper-Setup.exe` 하나에 포함합니다. PawnIO 설치 프로그램은 첫 실행 시 공식 2.2.0 배포처에서 다운로드하고 고정 해시와 서명을 검증합니다. 개인키, 사용자 설정, 기기별 RPM 보정값은 포함하지 않습니다.
+
+사용자 설치·업데이트·제거 안내는 [FIRST-START](FIRST-START.ko.md)에 있습니다. 팬 설치 조건을 만족하지 않으면 팬 제어 없이 앱을 실행합니다. 이 경로의 새 PC/Secure Boot 실기 확인은 아직 완료하지 않았습니다.
 
 실행 시 관리자 권한으로 Program Files/GalaxyHelper/packages 아래에 버전별 파일을 풉니다. 이미 실행 중이면 기존 트레이 앱을 안내합니다. 모든 포함 파일의 SHA256을 검사하고, 필요한 드라이버만 설치합니다. 기존 앱을 강제 종료하지 않습니다.
 
@@ -11,3 +13,5 @@
 검증 완료: 패키지 빌드, 내장 파일 목록/전체 해시 검증, 설치 스크립트 구문 검사. 깨끗한 Windows에서 전체 신규 설치·재부팅 경로는 아직 검증하지 않았습니다. 기존 장비의 드라이버를 재설치하여 시험하지 않았습니다.
 
 검증 모드: `GalaxyHelper-Setup.exe --verify-package report.txt`는 드라이버 설치나 시스템 설정 변경 없이 내장 파일만 확인합니다.
+
+릴리즈 절차: 릴리즈 workflow가 CI를 통과한 앱 EXE/ZIP으로 초안을 만듭니다. 유지보수자는 같은 커밋에서 전체 Setup을 빌드하고 `tools/Test-SingleExe.ps1 -Setup`으로 검사한 뒤 `tools/Publish-SetupRelease.ps1`을 실행합니다. 전체 Setup·시작 안내·통합 SHA256을 올린 다음 시험판을 공개합니다. 기존 공개 릴리즈는 덮어쓰지 않습니다. 현재 팬 드라이버 서명은 개발 장비에서 수행하며 개인키를 CI에 전송하지 않습니다.

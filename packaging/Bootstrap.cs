@@ -22,7 +22,7 @@ class Bootstrap
 #if APP_ONLY
                 string[] required={"bin/GalaxyHelper.exe","bin/GalaxyHardware.exe","bin/modules/IntelMSR.bin","bin/modules/IntelMCHBAR.bin"};
 #else
-                string[] required={"Start.ps1","bin/GalaxyHelper.exe","package/GalaxyFanRead.sys"};
+                string[] required={"Start.ps1","bin/GalaxyHelper.exe","bin/GalaxyHardware.exe","bin/modules/IntelMSR.bin","bin/modules/IntelMCHBAR.bin","package/GalaxyFanRead.sys","package/GalaxyFanRead.inf","package/GalaxyFanRead.cat","test-certificate.cer","시작안내.ko.md"};
 #endif
                 foreach(string name in required)if(archive.GetEntry(name)==null)throw new IOException("Incomplete package: "+name);
                 if(archive.GetEntry("hashes.json")==null)throw new IOException("Missing package hashes.");

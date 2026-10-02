@@ -61,13 +61,23 @@ namespace GalaxyHardware
         {
             smokeMode=true;var saved=AppliedSettings.Load(AppliedSettings.PathName);
             var watch=System.Diagnostics.Stopwatch.StartNew();var check=new System.Windows.Forms.Timer{Interval=500};
+            var samples=new System.Collections.Generic.List<FanControlState>();int goodSamples=0;
             ResumeAtLogon(false);
             check.Tick+=delegate {
-                bool power=!saved.Pl1.HasValue || ownsSetting && Math.Abs(Rapl.Pl1(msr.ReadMsr(0x610),units)-saved.Pl1.Value)<0.13 && Math.Abs(Rapl.Pl2(msr.ReadMsr(0x610),units)-saved.Pl2.Value)<0.13;
-                bool curve=saved.Curve==null || fanClient!=null && !fanBusy && fanCurvePolicy!=null;
-                if(watch.Elapsed.TotalSeconds<8 || (!power||!curve)&&watch.Elapsed.TotalSeconds<65)return;
-                check.Stop();check.Dispose();
-                File.WriteAllText(output,new JavaScriptSerializer().Serialize(new {Success=power&&curve,PowerVerified=power,CurveWasSaved=saved.Curve!=null,CurveVerified=curve,Status=status.Text,FanStatus=fanControlStatus.Text}));Close();
+                try {
+                    bool power=!saved.Pl1.HasValue || ownsSetting && Math.Abs(Rapl.Pl1(msr.ReadMsr(0x610),units)-saved.Pl1.Value)<0.13 && Math.Abs(Rapl.Pl2(msr.ReadMsr(0x610),units)-saved.Pl2.Value)<0.13;
+                    bool curve=saved.Curve==null;
+                    if(saved.Curve!=null && fanClient!=null && !fanBusy && fanCurvePolicy!=null) {
+                        var state=FanControlClient.Read();samples.Add(state);
+                        curve=state.Manual && state.MaxStep==FanCalibration.Load().MaxStep && fanCurvePolicy.Snapshot.Signature==saved.Curve.Signature;
+                        if(saved.Curve.IsZeroHold)curve=curve && state.Step==0 && state.Fan1Rpm==0 && state.Fan2Rpm==0 && state.ZeroLimitC==saved.Curve.ZeroStopTemperature;
+                        else curve=curve && state.Step==fanCurvePolicy.Step && state.Fan1Rpm>0 && state.Fan2Rpm>0;
+                    }
+                    goodSamples=power&&curve?goodSamples+1:0;
+                    if(watch.Elapsed.TotalSeconds<8 || goodSamples<3 && watch.Elapsed.TotalSeconds<65)return;
+                    check.Stop();check.Dispose();
+                    File.WriteAllText(output,new JavaScriptSerializer().Serialize(new {Success=goodSamples>=3,PowerVerified=power,CurveWasSaved=saved.Curve!=null,CurveVerified=saved.Curve==null?(bool?)null:curve,Samples=samples,Status=status.Text,FanStatus=fanControlStatus.Text}));Close();
+                } catch(Exception ex) {check.Stop();check.Dispose();File.WriteAllText(output,new JavaScriptSerializer().Serialize(new {Success=false,Error=ex.ToString(),Samples=samples}));Close();}
             };
             Shown+=delegate{check.Start();};
         }
@@ -78,11 +88,11 @@ namespace GalaxyHardware
             wait.Tick+=delegate {
                 try {
                     if(background && !StartupTask.Enabled()){wait.Stop();wait.Dispose();return;}
-                    if((!readingHealthy||fanBusy||setupRunning||!FanControlClient.IsReady())&&++attempts<30)return;
+                    var saved=AppliedSettings.Load(AppliedSettings.PathName);
+                    if((!readingHealthy||fanBusy||setupRunning||saved.Curve!=null&&!FanControlClient.IsReady())&&++attempts<30)return;
                     wait.Stop();wait.Dispose();
                     if(!readingHealthy||fanBusy||setupRunning)throw new IOException("센서 준비를 확인하지 못했습니다.");
                     if(File.Exists(Program.Journal)){var recovery=new JavaScriptSerializer().Deserialize<Program.Recovery>(File.ReadAllText(Program.Journal));if(recovery==null||String.IsNullOrWhiteSpace(recovery.Boot)||recovery.Boot==Program.Boot())throw new IOException("현재 부팅의 복원 기록이 남아 있습니다. 수동 확인이 필요합니다.");File.Move(Program.Journal,Program.Journal+".previous-boot-"+Guid.NewGuid().ToString("N"));}
-                    var saved=AppliedSettings.Load(AppliedSettings.PathName);
                     if(saved.Curve!=null){var profile=FanCalibration.Load();saved.Curve.Validate(profile);new FanCurvePolicy(profile,saved.Curve,Program.Temperature(msr));if(!FanControlClient.IsReady()||saved.Curve.HasZero&&!FanControlClient.IsZeroHoldReady())throw new IOException("팬 드라이버가 준비되지 않았습니다.");}
                     if(saved.Pl1.HasValue){pl1.Value=(decimal)saved.Pl1.Value;pl2.Value=(decimal)saved.Pl2.Value;Apply();if(!ownsSetting)throw new IOException("전력 적용을 확인하지 못했습니다.");}
                     if(saved.Curve!=null){fanReady=true;inlineGraph.SetCurve(saved.Curve);saved.Curve.Save(FanCalibration.Load());StartCurve();}

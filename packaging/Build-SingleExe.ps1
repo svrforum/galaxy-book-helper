@@ -7,7 +7,8 @@ Copy-Item "$root/$AppDirectory/GalaxyHelper.exe","$root/$AppDirectory/GalaxyHard
 Copy-Item "$root/$AppDirectory/modules/*.bin" "$stage/bin/modules"
 if (!$AppOnly) {
  Copy-Item "$root/artifacts/driver/package-FanZeroHold/GalaxyFanRead.inf","$root/artifacts/driver/package-FanZeroHold/GalaxyFanRead.sys","$root/artifacts/driver/package-FanZeroHold/GalaxyFanRead.cat" "$stage/package"
- Copy-Item "$root/.tools/PawnIO_setup.exe","$root/artifacts/driver/test-certificate.cer" $stage
+ Copy-Item "$root/artifacts/driver/test-certificate.cer" $stage
+ Copy-Item "$root/packaging/FIRST-START.ko.md" "$stage/시작안내.ko.md"
  [IO.File]::WriteAllText((Join-Path $stage 'Start.ps1'),[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Start.ps1')),(New-Object Text.UTF8Encoding $true))
 } else {
  Copy-Item "$root/packaging/APP-UPDATE.ko.md" "$stage/README.ko.md"

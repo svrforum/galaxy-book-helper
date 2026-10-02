@@ -4,7 +4,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/release.yml'
-      - 'packaging/RELEASE-NOTES-v0.1.1-experimental.ko.md'
+      - 'packaging/RELEASE-NOTES-v0.2.0-experimental.ko.md'
   workflow_dispatch:
 permissions:
   contents: read
@@ -40,16 +40,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          release_tag=v0.1.1-experimental
-          release_asset=GalaxyHelper-v0.1.1-experimental-windows-x64.zip
+          release_tag=v0.2.0-experimental
+          release_asset=GalaxyHelper-v0.2.0-experimental-windows-x64.zip
           mv release-files/GalaxyHelper-app.zip "release-files/$release_asset"
-          release_exe=GalaxyHelper-v0.1.1-experimental-windows-x64.exe
+          release_exe=GalaxyHelper-v0.2.0-experimental-windows-x64.exe
           mv release-files/GalaxyHelper.exe "release-files/$release_exe"
           (cd release-files && sha256sum "$release_asset" "$release_exe" > SHA256SUMS.txt)
           if gh release view "$release_tag" --json targetCommitish --jq .targetCommitish > release-target.txt 2>/dev/null; then
             test "$(cat release-target.txt)" = "$RELEASE_COMMIT" || { echo 'Existing release targets a different commit; refusing to replace it.'; exit 1; }
             gh release upload "$release_tag" "release-files/$release_asset" "release-files/$release_exe" release-files/SHA256SUMS.txt --clobber
           else
-            gh release create "$release_tag" "release-files/$release_asset" "release-files/$release_exe" release-files/SHA256SUMS.txt --target "$RELEASE_COMMIT" --title 'Galaxy Book Helper v0.1.1-experimental · 단일 EXE · 빠른 시작' --notes-file packaging/RELEASE-NOTES-v0.1.1-experimental.ko.md --prerelease
+            gh release create "$release_tag" "release-files/$release_asset" "release-files/$release_exe" release-files/SHA256SUMS.txt --target "$RELEASE_COMMIT" --title 'Galaxy Book Helper v0.2.0-experimental · 단일 EXE 설치 · 설정 유지' --notes-file packaging/RELEASE-NOTES-v0.2.0-experimental.ko.md --prerelease --draft
           fi
           gh release view "$release_tag" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
