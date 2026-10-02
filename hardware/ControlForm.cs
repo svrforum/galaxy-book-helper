@@ -120,6 +120,7 @@ namespace GalaxyHardware
         }
         void FanButtons()
         {
+            UpdateCurveAction();
             fanSetup.Enabled=fanReady && !fanBusy && !busy;
             curveButton.Enabled=inlineGraph!=null && fanReady && (!fanBusy || fanReadInFlight);
             fanApply.Enabled=fanCap.Enabled=fanReady && !fanBusy && fanClient==null;
@@ -161,7 +162,8 @@ namespace GalaxyHardware
                 if (e.Error!=null) { StopFan(); fanControlStatus.Text=e.Error.Message; }
                 else {
                     if (fanCapPolicy!=null) fanCapPolicy.MarkStarted(DateTime.UtcNow);
-                    fanControlStatus.Text="팬 설정 적용 완료 · 실제 속도 안정화 중";
+                    fanControlStatus.Text="적용 완료 · 실제 팬 속도 안정화 중";
+                    UpdateCurveAction();
                     fanTimer.Start();RememberApplied(false,fanCurvePolicy==null?null:fanCurvePolicy.Snapshot);
                 }
                 FanButtons(); worker.Dispose();
@@ -191,6 +193,7 @@ namespace GalaxyHardware
             fanTimer.Stop();
             fanCurvePolicy=null;
             var client=fanClient; fanClient=null;
+            UpdateCurveAction();
             if (client!=null) try { client.Dispose(); } catch (Exception ex) { fanControlStatus.Text="복귀 요청 실패: " + ex.Message; }
         }
         void RestoreFan()
@@ -215,8 +218,8 @@ namespace GalaxyHardware
         void Buttons()
         {
             bool recovery = File.Exists(Program.Journal);
-            apply.Enabled = !busy && readingHealthy && !recovery; restore.Enabled = !busy && recovery;
-            pl1.Enabled = pl2.Enabled = !busy && !recovery;
+            apply.Enabled = !busy && readingHealthy && (!recovery || ownsSetting); restore.Enabled = !busy && recovery;
+            pl1.Enabled = pl2.Enabled = !busy && (!recovery || ownsSetting);
             apply.BackColor = apply.Enabled ? Color.FromArgb(232,239,250) : Color.LightSlateGray;
             restore.BackColor = restore.Enabled ? Color.FromArgb(232,239,250) : Color.LightSlateGray;
         }
@@ -262,6 +265,18 @@ namespace GalaxyHardware
             UpdateQuickState();
             if(fanReady && fanClient==null && !fanBusy && (DateTime.UtcNow-lastFanPoll).TotalSeconds>=2) { lastFanPoll=DateTime.UtcNow; RefreshFan(true); }
         }
+        void ApplyEditedPower()
+        {
+            if(busy || !readingHealthy)return;
+            decimal sustained=pl1.Value,burst=pl2.Value;
+            if(fanClient!=null && fanCurvePolicy!=null && fanCurvePolicy.ZeroLimit!=0) {
+                if(fanBusy){NotifyError("팬 설정 응답을 기다린 뒤 전력을 변경하세요.");return;}
+                afterFanRestore=delegate {RememberApplied(false);pl1.Value=sustained;pl2.Value=burst;ApplyEditedPower();};
+                RestoreFan();fanControlStatus.Text="전력 변경 전에 자동 냉각으로 복귀합니다.";return;
+            }
+            try {if(ownsSetting)Restore();pl1.Value=sustained;pl2.Value=burst;Apply();}
+            catch(Exception ex){NotifyError("전력 변경 중단: "+ex.Message);}
+        }
         void Apply()
         {
             busy = true; Buttons();
@@ -280,7 +295,7 @@ namespace GalaxyHardware
                 }
                 catch { Program.Restore(msr); ownsSetting = false; throw; }
                 RememberApplied(true);
-                status.Text = "MSR 설정값 저장·재조회 완료. 실효는 위 실측 W를 확인하세요.\n앱 종료 시 복원합니다. 다른 값을 적용하려면 먼저 복원하세요.";
+                status.Text = String.Format("적용 중 · 지속 {0:0.#}W / 단기 {1:0.#}W · 다음 실행에도 유지",Rapl.Pl1(expected,units),Rapl.Pl2(expected,units));
             }
             catch (Exception ex) { status.Text = "적용 실패: " + ex.Message; MessageBox.Show(this, status.Text, "Galaxy Helper", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             finally { busy = false; RefreshReadings(); }
@@ -288,7 +303,7 @@ namespace GalaxyHardware
         void Restore()
         {
             busy = true; Buttons();
-            try { Program.Restore(msr); ownsSetting = false; status.Text = "원래 전력 제한으로 복원하고 재조회로 확인했습니다."; }
+            try { Program.Restore(msr); ownsSetting = false; status.Text = "원래 전력으로 복원 · 저장된 적용값은 다음 실행에 사용"; }
             catch (Exception ex) { status.Text = "복원 실패: " + ex.Message; throw; }
             finally { busy = false; Buttons(); }
         }

@@ -43,11 +43,12 @@ namespace GalaxyHardware
         void BuildPowerPresets(FlowLayoutPanel parent)
         {
             var row=Row();powerPicker.DropDownStyle=ComboBoxStyle.DropDownList;powerPicker.FlatStyle=FlatStyle.Flat;powerPicker.BackColor=Color.FromArgb(242,244,247);powerPicker.Width=218;powerPicker.Margin=new Padding(0,3,8,0);powerPicker.AccessibleName="전력 프리셋";row.Controls.Add(powerPicker);
-            Style(powerSave,"저장",96);Style(powerDelete,"삭제",64);row.Controls.Add(powerSave);row.Controls.Add(powerDelete);parent.Controls.Add(row);
+            Style(powerSave,"이름 저장",96);Style(powerDelete,"삭제",64);row.Controls.Add(powerSave);row.Controls.Add(powerDelete);parent.Controls.Add(row);
+            detailsTip.SetToolTip(powerSave,"현재 전력값을 사용자 프리셋으로 저장합니다. 실제 전력은 ‘전력 적용’으로 변경하세요.");
             try {powerPresets=smokeMode?new PowerPresetStore{Version=1,Items=new List<PowerPreset>()}:PowerPresetStore.Load(PowerPresetStore.PathName);}catch(Exception ex){powerSave.Enabled=false;status.Text="프리셋 읽기 실패: "+ex.Message;}
             RefreshPowerPresets();
             powerPicker.SelectedIndexChanged+=delegate {if(pickingPower)return;var p=powerPicker.SelectedItem as PowerPreset;if(p==null)return;pickingPower=true;pl1.Value=p.Sustained;pl2.Value=p.Burst;pickingPower=false;powerDelete.Enabled=powerPicker.SelectedIndex>=5;status.Text="불러옴 · 적용하면 반영됩니다.";};
-            EventHandler edited=delegate {if(pickingPower)return;pickingPower=true;powerPicker.SelectedIndex=0;powerDelete.Enabled=false;pickingPower=false;};pl1.ValueChanged+=edited;pl2.ValueChanged+=edited;
+            EventHandler edited=delegate {if(pickingPower)return;pickingPower=true;powerPicker.SelectedIndex=0;powerDelete.Enabled=false;pickingPower=false;if(!busy)status.Text="변경 대기 · 전력 적용을 누르면 반영됩니다.";};pl1.ValueChanged+=edited;pl2.ValueChanged+=edited;
             powerSave.Click+=delegate {SavePowerPreset();};
             powerDelete.Click+=delegate {var p=powerPicker.SelectedItem as PowerPreset;if(p==null||powerPicker.SelectedIndex<5)return;if(MessageBox.Show(this,p.Name+" 프리셋을 삭제할까요?","전력 프리셋",MessageBoxButtons.YesNo)!=DialogResult.Yes)return;try{var store=PowerPresetStore.Load(PowerPresetStore.PathName);store.Items.RemoveAll(x=>x.Name==p.Name);store.Save(PowerPresetStore.PathName);powerPresets=store;RefreshPowerPresets();status.Text="전력 프리셋 삭제 완료";}catch(Exception ex){NotifyError(ex.Message);}};
         }

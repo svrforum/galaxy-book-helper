@@ -11,7 +11,9 @@ $password=@($credential | Where-Object {$_ -like 'password=*'})
 if($password.Count -ne 1){throw 'GitHub credential is unavailable.'}
 $headers=@{Authorization='Bearer '+$password[0].Substring(9);Accept='application/vnd.github+json';'X-GitHub-Api-Version'='2022-11-28'}
 $api="https://api.github.com/repos/$repo"
-$release=Invoke-RestMethod "$api/releases/tags/$Tag" -Headers $headers
+$release=@((Invoke-RestMethod "$api/releases?per_page=100" -Headers $headers) | Where-Object {$_.tag_name -eq $Tag})
+if($release.Count -ne 1){throw 'Expected exactly one matching release draft.'}
+$release=$release[0]
 if(!$release.draft -or $release.target_commitish -ne $commit){throw 'Expected an unpublished draft targeting the current commit. Existing public releases are never replaced.'}
 $runs=Invoke-RestMethod "$api/actions/runs?head_sha=$commit&per_page=50" -Headers $headers
 $ci=@($runs.workflow_runs | Where-Object {$_.name -eq 'Verified experimental app release'})

@@ -16,7 +16,7 @@ namespace GalaxyHardware
         void RefreshPresetPicker(string selected)
         {
             pickingPreset=true;presetPicker.Items.Clear();
-            presetPicker.Items.Add("프리셋 선택 / 현재 커브 편집 중");
+            presetPicker.Items.Add("사용자 커브 · 직접 편집");
             foreach(string name in FanPresetStore.Builtins)presetPicker.Items.Add(name);
             if(userPresets!=null)foreach(var item in userPresets.Items)presetPicker.Items.Add("사용자 · "+item.Name);
             if(selected==null)presetPicker.SelectedIndex=0;else presetPicker.SelectedItem=selected;deletePresetButton.Enabled=selected!=null && selected.StartsWith("사용자 · ",StringComparison.Ordinal);pickingPreset=false;
@@ -29,7 +29,8 @@ namespace GalaxyHardware
             presetPicker.DrawMode=DrawMode.OwnerDrawFixed;
 presetPicker.DrawItem+=delegate(object sender,DrawItemEventArgs e){if(e.Index<0)return;using(var brush=new SolidBrush((e.State & DrawItemState.Selected)!=0?Color.FromArgb(221,235,255):presetPicker.BackColor))e.Graphics.FillRectangle(brush,e.Bounds);TextRenderer.DrawText(e.Graphics,presetPicker.Items[e.Index].ToString(),Font,e.Bounds,ForeColor,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);};
             row.Controls.Add(presetPicker);
-            Style(savePresetButton,"저장",96);row.Controls.Add(savePresetButton);
+            Style(savePresetButton,"이름 저장",96);row.Controls.Add(savePresetButton);
+            detailsTip.SetToolTip(savePresetButton,"현재 곡선을 사용자 프리셋 이름으로 저장합니다.");
             Style(deletePresetButton,"삭제",64);row.Controls.Add(deletePresetButton);
             try {userPresets=previewCalibration==null?FanPresetStore.Load(PresetStoragePath,inlineProfile):new FanPresetStore {Version=1,Items=new System.Collections.Generic.List<NamedFanPreset>()};}
             catch(Exception ex){userPresets=null;savePresetButton.Enabled=false;fanControlStatus.Text="프리셋 읽기 실패: "+ex.Message;}
@@ -40,7 +41,7 @@ presetPicker.DrawItem+=delegate(object sender,DrawItemEventArgs e){if(e.Index<0)
                 if(choice.StartsWith("사용자 · ",StringComparison.Ordinal))inlineGraph.SetCurve(userPresets.Items.First(p=>p.Name==choice.Substring(6)).Curve);
                 else inlineGraph.SetPreset(choice);
                 deletePresetButton.Enabled=choice.StartsWith("사용자 · ",StringComparison.Ordinal);
-                fanControlStatus.Text="프리셋 불러옴 · 적용 버튼을 누르면 실제 팬에 반영됩니다.";
+                fanControlStatus.Text=fanClient!=null&&fanCurvePolicy!=null?"프리셋 불러옴 · 변경값 자동 반영 대기":"프리셋 불러옴 · 커브 시작을 눌러 적용하세요.";
             };
             savePresetButton.Click+=delegate {SaveNamedPreset();};
             deletePresetButton.Click+=delegate {
@@ -63,7 +64,7 @@ presetPicker.DrawItem+=delegate(object sender,DrawItemEventArgs e){if(e.Index<0)
                     try {
                         string value=FanPresetStore.CheckName(name.Text);var store=FanPresetStore.Load(PresetStoragePath,inlineProfile);
                         if(store.Items.Any(p=>String.Equals(p.Name,value,StringComparison.OrdinalIgnoreCase)) && MessageBox.Show(dialog,"같은 이름의 프리셋을 덮어쓸까요?","프리셋 저장",MessageBoxButtons.YesNo,MessageBoxIcon.Question)!=DialogResult.Yes)return;
-                        store.Put(value,inlineGraph.Curve,inlineProfile);store.Save(PresetStoragePath);userPresets=store;RefreshPresetPicker("사용자 · "+value);fanControlStatus.Text="프리셋 저장 완료 · 하드웨어 설정은 변경하지 않았습니다.";dialog.DialogResult=DialogResult.OK;
+                        store.Put(value,inlineGraph.Curve,inlineProfile);store.Save(PresetStoragePath);userPresets=store;RefreshPresetPicker("사용자 · "+value);fanControlStatus.Text="프리셋 저장됨 · 목록에서 다시 불러올 수 있습니다.";dialog.DialogResult=DialogResult.OK;
                     }catch(Exception ex){MessageBox.Show(dialog,ex.Message,"저장 실패",MessageBoxButtons.OK,MessageBoxIcon.Error);}
                 };
                 dialog.Shown+=delegate {name.SelectAll();name.Focus();};dialog.ShowDialog(this);

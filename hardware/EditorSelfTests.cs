@@ -90,6 +90,7 @@ namespace GalaxyHardware
                 curveTemperature.Value=48;curveRpm.Value=1000;
                 EditorSelfTests.Assert(inlineGraph.Curve.Temperatures[inlineGraph.Selected]==48 && inlineGraph.Curve.Rpms[inlineGraph.Selected]==1000,"Reloaded editor input did not update current graph.");
                 passed.Add("editor reload after setup replaces controls without duplicate stale event handlers");
+                FitWithoutScroll((FlowLayoutPanel)Controls[0],696);
                 SaveLayoutReport(Path.Combine(folder,"layout.json"));var layout=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(File.ReadAllText(Path.Combine(folder,"layout.json")));EditorSelfTests.Assert((bool)layout["Success"],"Editor controls clipped or scrollbars visible: "+File.ReadAllText(Path.Combine(folder,"layout.json")));
                 passed.Add("complete editor fits without scrolling or clipped controls");
             }finally {editorPresetTestPath=null;foreach(string file in new[]{path,path+".bak",Path.Combine(folder,"layout.json")})if(File.Exists(file))File.Delete(file);if(Directory.Exists(folder))Directory.Delete(folder,false);}

@@ -49,15 +49,16 @@ namespace GalaxyHardware
             var fan=Card(stack,"팬 속도");fanReading.Font=new Font("Segoe UI",13,FontStyle.Bold);Line(fan,fanReading,28);
             curveDetails=new FlowLayoutPanel {Width=408,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,FlowDirection=FlowDirection.TopDown,WrapContents=false,Margin=Padding.Empty};fan.Controls.Add(curveDetails);BuildInlineCurve(curveDetails);curveDetails.Visible=true;
             var controls=Row();Style(curveButton,inlineGraph!=null && inlineGraph.Curve.IsZeroHold?"0 RPM + 5/10W 적용":"커브 적용",144);curveButton.BackColor=accent;curveButton.ForeColor=Color.White;curveButton.Click+=delegate {ApplyInlineCurve();};controls.Controls.Add(curveButton);
-            Style(fanAuto,"자동",74);controls.Controls.Add(fanAuto);Style(fanRefresh,"조회",68);controls.Controls.Add(fanRefresh);Style(fanSetup,"보정",98);controls.Controls.Add(fanSetup);fan.Controls.Add(controls);
+            Style(fanAuto,"자동 냉각",74);controls.Controls.Add(fanAuto);Style(fanRefresh,"새로고침",68);controls.Controls.Add(fanRefresh);Style(fanSetup,"정밀 보정",98);controls.Controls.Add(fanSetup);fan.Controls.Add(controls);
             fanControlStatus.ForeColor=Color.FromArgb(107,118,132);fanControlStatus.AutoEllipsis=true;Line(fan,fanControlStatus,24);
+            UpdateCurveAction();
             fanSetup.Click+=delegate {OpenFanSetup();};fanSetup.AccessibleName="팬 정밀 보정 및 검증";
             detailsTip.SetToolTip(fanSetup,"팬 단계 측정 · RPM 목표 유지 · 자동 복귀 검증 · 약 7~9분");
             Shown+=delegate {if(!smokeMode)BeginInvoke(new Action(TryAutomaticFanSetup));};
             fanSteps.Minimum=1;fanSteps.Maximum=3;fanSteps.Value=2;
             fanTarget.Minimum=1000;fanTarget.Maximum=6500;fanTarget.Increment=100;fanTarget.Value=3400;Number(fanTarget,100);Style(fanCap,"고정 목표 적용",170);
             detailsTip.SetToolTip(curveButton,"일반 커브 80°C 보호 · 0 RPM은 지정 온도에서 자동 냉각");
-            apply.Click+=delegate {Apply();};restore.Click+=delegate {try {Restore();}catch(Exception ex){NotifyError(ex.Message);}};
+            apply.Click+=delegate {ApplyEditedPower();};restore.Click+=delegate {try {Restore();}catch(Exception ex){NotifyError(ex.Message);}};
             fanApply.Click+=delegate {StartFan(false);};fanCap.Click+=delegate {StartFan(true);};fanAuto.Click+=delegate {RestoreFan();};fanRefresh.Click+=delegate {RefreshFan();};
             fanTimer.Interval=1000;fanTimer.Tick+=delegate {TickFan();};
             SetupTrayPanel(header);DecorateButtons(stack);tray.Text="Galaxy Helper";tray.ContextMenuStrip=quickMenu;tray.Visible=true;
@@ -77,10 +78,7 @@ namespace GalaxyHardware
         {
             if(busy || !readingHealthy) { NotifyError("전력 센서 확인 후 다시 적용하세요."); return; }
             try {
-                if(ownsSetting) Restore();
-                if(File.Exists(Program.Journal)) throw new IOException("먼저 기존 전력 복원 기록을 복원하세요.");
-                ulong raw=msr.ReadMsr(0x610); Rapl.EncodeReduction(raw,units,sustained,burst);
-                pl1.Value=sustained; pl2.Value=burst; Apply();
+                pl1.Value=sustained; pl2.Value=burst; ApplyEditedPower();
             } catch(Exception ex) { NotifyError(ex.Message); }
         }
         void QuickFan(int value,bool cap)

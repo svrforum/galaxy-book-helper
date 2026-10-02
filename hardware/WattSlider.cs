@@ -13,6 +13,7 @@ namespace GalaxyHardware
             caption=title;unit=suffix;input=source;Height=48;Width=340;TabStop=true;Cursor=Cursors.Hand;AccessibleName=title+(suffix=="W"?" 전력 제한":"");
             SetStyle(ControlStyles.UserPaint|ControlStyles.AllPaintingInWmPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.Selectable,true);
             input.ValueChanged+=delegate {AccessibleDescription=input.Value.ToString("0.#")+" "+unit;Invalidate();};
+            Enabled=input.Enabled;input.EnabledChanged+=delegate {Enabled=input.Enabled;};
         }
         internal void ExerciseDrag(int x){OnMouseDown(new MouseEventArgs(MouseButtons.Left,1,x,35,0));OnMouseUp(new MouseEventArgs(MouseButtons.Left,1,x,35,0));}
         void MoveValue(int x) {double ratio=Math.Max(0,Math.Min(1,(x-9.0)/(Width-18)));input.Value=Math.Max(input.Minimum,Math.Min(input.Maximum,Math.Round((input.Minimum+(decimal)ratio*(input.Maximum-input.Minimum))/input.Increment)*input.Increment));}
