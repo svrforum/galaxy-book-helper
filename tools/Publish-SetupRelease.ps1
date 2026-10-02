@@ -1,4 +1,4 @@
-param([string]$Tag='v0.2.0-experimental')
+param([string]$Tag='v0.2.1-experimental')
 $ErrorActionPreference='Stop'
 if($Tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+-experimental$'){throw 'Invalid experimental release tag.'}
 $root=Split-Path $PSScriptRoot -Parent
@@ -23,7 +23,7 @@ New-Item -ItemType Directory -Force $folder | Out-Null
 $setup=Join-Path $root 'artifacts/GalaxyHelper-Setup.exe'
 if(!(Test-Path $setup)){throw 'Build and verify the full Setup EXE first.'}
 $report=Join-Path $folder 'package-check.txt'
-$p=Start-Process $setup -ArgumentList @('--verify-package',$report) -WindowStyle Hidden -Wait -PassThru
+$p=Start-Process $setup -ArgumentList @('--verify-installation',$report) -WindowStyle Hidden -Wait -PassThru
 if($p.ExitCode -ne 0 -or !(Test-Path $report)){throw 'Setup embedded package verification failed.'}
 $name="GalaxyHelper-$Tag-Setup.exe"
 Copy-Item $setup (Join-Path $folder $name)

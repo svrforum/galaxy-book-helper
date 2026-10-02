@@ -64,6 +64,9 @@ jobs:
       - name: Build single EXE with embedded app and modules
         shell: pwsh
         run: ./packaging/Build-SingleExe.ps1 -AppDirectory bin-next -AppOnly
+      - name: Execute installer preflight through Windows PowerShell with Korean UTF8 paths
+        shell: pwsh
+        run: ./tools/Test-InstallerPreflight.ps1
       - name: Verify single EXE and reject damaged or incomplete payloads
         shell: pwsh
         run: ./tools/Test-SingleExe.ps1

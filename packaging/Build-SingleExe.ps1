@@ -8,7 +8,7 @@ Copy-Item "$root/$AppDirectory/modules/*.bin" "$stage/bin/modules"
 if (!$AppOnly) {
  Copy-Item "$root/artifacts/driver/package-FanZeroHold/GalaxyFanRead.inf","$root/artifacts/driver/package-FanZeroHold/GalaxyFanRead.sys","$root/artifacts/driver/package-FanZeroHold/GalaxyFanRead.cat" "$stage/package"
  Copy-Item "$root/artifacts/driver/test-certificate.cer" $stage
- Copy-Item "$root/packaging/FIRST-START.ko.md" "$stage/시작안내.ko.md"
+ Copy-Item "$root/packaging/FIRST-START.ko.md" "$stage/FIRST-START.ko.md"
  [IO.File]::WriteAllText((Join-Path $stage 'Start.ps1'),[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Start.ps1')),(New-Object Text.UTF8Encoding $true))
 } else {
  Copy-Item "$root/packaging/APP-UPDATE.ko.md" "$stage/README.ko.md"
@@ -17,7 +17,7 @@ Copy-Item "$root/dependencies/pawnio/COPYING","$root/dependencies/pawnio/NOTICE.
 # Public certificate only; no private keys, user profiles or calibration data.
 $hashes=[ordered]@{}
 Get-ChildItem $stage -File -Recurse|ForEach-Object {$name=$_.FullName.Substring($stage.Length+1).Replace('\','/');$hashes[$name]=(Get-FileHash $_.FullName -Algorithm SHA256).Hash}
-$hashes|ConvertTo-Json|Set-Content "$stage/hashes.json" -Encoding UTF8
+[IO.File]::WriteAllText((Join-Path $stage 'hashes.json'),($hashes|ConvertTo-Json),(New-Object Text.UTF8Encoding $true))
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip=$stage+'.zip'
 [IO.Compression.ZipFile]::CreateFromDirectory($stage,$zip)

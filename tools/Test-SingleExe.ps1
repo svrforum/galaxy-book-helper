@@ -10,6 +10,12 @@ try {
     $process = Start-Process $app -ArgumentList "--verify-package $report" -Wait -PassThru
     if ($process.ExitCode -ne 0 -or !(Test-Path $report)) { throw 'The real single EXE package did not verify.' }
     Write-Output 'PASS: real embedded EXE and module package verifies without hardware access.'
+    if($Setup){
+        $installation=Join-Path $temporary 'installation.txt'
+        $process=Start-Process $app -ArgumentList @('--verify-installation',$installation) -WindowStyle Hidden -Wait -PassThru
+        if($process.ExitCode -ne 0 -or !(Test-Path $installation)){if(Test-Path ($installation+'.error.txt')){Get-Content ($installation+'.error.txt')};throw 'Windows PowerShell installation preflight failed.'}
+        Write-Output (Get-Content $installation -Raw)
+    }
     $assembly = [Reflection.Assembly]::LoadFile($app)
     foreach ($case in @('missing-module', 'tampered-app')) {
         $zip = Join-Path $temporary "$case.zip"

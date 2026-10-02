@@ -14,7 +14,7 @@ Galaxy Book6 Pro의 전력과 팬을 Windows에서 조절하는 실험용 도구
 
 ## 파일 하나로 실행 및 빠른 시작
 
-**[GitHub Releases 다운로드](https://github.com/svrforum/galaxy-book-helper/releases)** · 처음 사용자는 **v0.2.0-experimental Setup EXE** 하나를 받으세요. [설치·업데이트·제거 안내](packaging/FIRST-START.ko.md). 필요한 공식 PawnIO는 검증 후 다운로드하며, 팬 제어 시험용 드라이버와 공개 인증서는 Setup에 포함합니다. Microsoft 정식 서명 팬 드라이버는 아니며 새 PC 최초 설치 전체 경로는 미검증입니다.
+**[GitHub Releases 다운로드](https://github.com/svrforum/galaxy-book-helper/releases)** · 처음 사용자는 **v0.2.1-experimental Setup EXE** 하나를 받으세요. v0.2.0 Setup의 파일명 인코딩 오류를 수정했습니다. [설치·업데이트·제거 안내](packaging/FIRST-START.ko.md). 필요한 공식 PawnIO는 검증 후 다운로드하며, 팬 제어 시험용 드라이버와 공개 인증서는 Setup에 포함합니다. Microsoft 정식 서명 팬 드라이버는 아니며 새 PC 최초 설치 전체 경로는 미검증입니다.
 
 릴리즈의 단일 **GalaxyHelper EXE**에는 앱·진단 도구·PawnIO 모듈이 내장되어 있습니다. 압축을 풀거나 모듈 파일을 따로 관리할 필요 없이 EXE 하나를 실행하면 됩니다. 앱 업데이트 EXE는 기존 드라이버를 사용하며, 시험용 Setup은 팬 드라이버 설치도 안내합니다.
 

@@ -1,10 +1,12 @@
-#Requires -RunAsAdministrator
+param([string]$VerifyReport)
 $ErrorActionPreference='Stop'
-Add-Type -AssemblyName System.Windows.Forms
 try {
  $root=$PSScriptRoot
- $manifest=Get-Content (Join-Path $root 'hashes.json') -Raw|ConvertFrom-Json
+ $manifest=Get-Content (Join-Path $root 'hashes.json') -Raw -Encoding UTF8|ConvertFrom-Json
  foreach($file in $manifest.PSObject.Properties){if((Get-FileHash -LiteralPath (Join-Path $root $file.Name) -Algorithm SHA256).Hash -ne $file.Value){throw ('파일 검증 실패: '+$file.Name)}}
+ if($VerifyReport){[IO.File]::WriteAllText($VerifyReport,'Verified by Windows PowerShell '+$PSVersionTable.PSVersion+'; no installation or hardware writes.');exit 0}
+ Add-Type -AssemblyName System.Windows.Forms
+ if(!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)){throw '관리자 권한으로 실행하세요.'}
  if(Get-Process GalaxyHelper -ErrorAction SilentlyContinue){[Windows.Forms.MessageBox]::Show('이미 실행 중입니다. 트레이 아이콘을 눌러주세요. 새 버전으로 바꾸려면 기존 앱에서 종료 및 설정 복원을 선택한 뒤 다시 실행하세요.','Galaxy Helper')|Out-Null;exit 0}
  $bios=Get-ItemProperty 'HKLM:\HARDWARE\DESCRIPTION\System\BIOS'
  if($bios.SystemProductName -ne 'Galaxy Book6 Pro - PAMB' -or $bios.BIOSVersion -ne 'PAMB.1.5.74.371'){throw '이 패키지는 Galaxy Book6 Pro PAMB / BIOS PAMB.1.5.74.371 전용입니다.'}
@@ -43,4 +45,4 @@ try {
   }
  }
  Start-Process (Join-Path $root 'bin/GalaxyHelper.exe') -WorkingDirectory (Join-Path $root 'bin')|Out-Null
-} catch {[Windows.Forms.MessageBox]::Show($_.Exception.Message,'Galaxy Helper 설치 / 실행 오류')|Out-Null;exit 1}
+} catch {if($VerifyReport){[IO.File]::WriteAllText($VerifyReport+'.error.txt',$_.Exception.ToString())}else{Add-Type -AssemblyName System.Windows.Forms;[Windows.Forms.MessageBox]::Show($_.Exception.Message,'Galaxy Helper 설치 / 실행 오류')|Out-Null};exit 1}
