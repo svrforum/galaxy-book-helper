@@ -37,6 +37,7 @@ namespace GalaxyHardware
             var header=new Panel {Width=424,Height=32,Margin=new Padding(0,0,0,6)};
             header.Controls.Add(new Label {Text="Galaxy Helper",Font=new Font("Segoe UI",13,FontStyle.Bold),Bounds=new Rectangle(0,0,150,32)});
             measured.Font=new Font("Segoe UI",11);measured.ForeColor=accent;measured.TextAlign=ContentAlignment.MiddleRight;measured.Bounds=new Rectangle(146,0,200,32);header.Controls.Add(measured);stack.Controls.Add(header);
+            BuildBatterySummary(header);detailsTip.SetToolTip(measured,"CPU 패키지 전력과 CPU 온도입니다. PC 전체 소비 전력은 아래 배터리 정보를 확인하세요.");
             Shown+=delegate {FitWithoutScroll(stack);};
             BuildRefreshRow(stack);BuildBrightnessRow(stack);
             var power=Card(stack,"전력");

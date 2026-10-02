@@ -240,7 +240,7 @@ namespace GalaxyHardware
                 if (elapsed >= 0.25)
                 {
                     double watts = Rapl.Watts(energy, current, units, elapsed); energy = current; sampleClock.Restart();
-                    measured.Text = String.Format("{0:F1} W   ·   {1} °C", watts, temperature);
+                    measured.Text = String.Format("CPU {0:F1} W · {1} °C", watts, temperature);
                 }
                 else measured.Text = "센서 초기화 중…";
                 limits.Text = String.Format("MSR 현재 제한     PL1 {0:F1} W  /  PL2 {1:F1} W\n펌웨어 잠금: {2}", Rapl.Pl1(raw, units), Rapl.Pl2(raw, units), Rapl.Locked(raw) ? "잠김" : "해제");
@@ -410,7 +410,7 @@ namespace GalaxyHardware
             if (disposing && !hardwareDisposed)
             {
                 hardwareDisposed = true; StopFan(); fanTimer.Dispose(); timer.Dispose(); tray.Dispose();
-                brightnessDelay.Dispose();curveEditDelay.Dispose();detailsTip.Dispose();dismissTimer.Dispose();if(panelIcon!=null)panelIcon.Dispose();
+                brightnessDelay.Dispose();batteryTimer.Dispose();curveEditDelay.Dispose();detailsTip.Dispose();dismissTimer.Dispose();if(panelIcon!=null)panelIcon.Dispose();
                 if (mmio != null) mmio.Dispose(); if(msr!=null) msr.Dispose();
             }
             base.Dispose(disposing);
@@ -424,6 +424,7 @@ namespace GalaxyHardware
             Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
             try
             {
+                if(args.Length==2 && args[0]=="--battery-check"){File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(new BatteryMonitor().Read()));return 0;}
                 if(args.Length==2 && args[0]=="--display-save-current"){File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(DisplayRefresh.SaveCurrent()));return 0;}
                 if(args.Length==2 && args[0]=="--display-check"){File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(DisplayRefresh.Inspect()));return 0;}
                 if(args.Length==2 && args[0]=="--setup-self-test") {File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(FanSetupSelfTests.Run()));return 0;}

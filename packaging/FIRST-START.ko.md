@@ -1,10 +1,10 @@
-# 처음 실행하기 · v0.2.1-experimental
+# 처음 실행하기 · v0.2.2-experimental
 
 이 버전은 Galaxy Book6 Pro **PAMB / Core Ultra X7 358H / BIOS PAMB.1.5.74.371** 전용 시험판입니다. 다른 모델·BIOS는 지원하지 않습니다.
 
 ## 다운로드
 
-GitHub Releases의 `GalaxyHelper-v0.2.1-experimental-Setup.exe` 하나를 받으세요.
+GitHub Releases의 `GalaxyHelper-v0.2.2-experimental-Setup.exe` 하나를 받으세요.
 수동 압축 해제나 개발 도구 설치는 필요 없습니다. 앱 EXE는 미서명이므로 Windows에서 게시자를 확인하지 못했다는 경고가 나올 수 있습니다. 조직 정책이 실행을 차단하면 관리자에게 문의하세요.
 
 1. EXE를 실행하고 Windows 관리자 권한 요청을 확인합니다.
@@ -25,6 +25,8 @@ GitHub Releases의 `GalaxyHelper-v0.2.1-experimental-Setup.exe` 하나를 받으
 Microsoft 안내: https://learn.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option
 
 ## 설정 유지와 업데이트
+
+상단에는 CPU 패키지 전력과 별도로 배터리 정보를 표시합니다. 충전 중에는 ‘배터리 잔량 · 충전 중’, 배터리 사용 중에는 ‘PC 전체 W · 배터리 잔량 · 예상 남은 시간’입니다. 전체 W는 Windows의 배터리 방전율이며 콘센트 전력은 아닙니다. 남은 시간은 최근 1분 평균 방전율 기준으로 계산하므로 이후 작업 부하와 밝기에 따라 달라집니다. 조회는 5초마다 수행하고 전원 전환·절전 뒤에는 이전 평균을 초기화합니다. 센서가 값을 제공하지 않으면 숫자를 추측하지 않습니다.
 
 성공적으로 적용한 전력·팬 커브는 `%LOCALAPPDATA%\GalaxyHelper`에 저장합니다. 앱 종료 시 하드웨어를 복원하고, 다음 정상 실행 시 마지막 적용값을 다시 적용합니다. 자동 냉각으로 복귀한 상태를 저장하면 팬은 자동 제어로 시작합니다.
 

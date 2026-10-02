@@ -11,10 +11,11 @@ Galaxy Book6 Pro의 전력과 팬을 Windows에서 조절하는 실험용 도구
 - 그래프에서 직접 편집하는 온도 커브와 극저소음·최적화·평균·냉각 우선 프리셋
 - **0 RPM 프리셋**: 지속 5W / 단기 10W를 함께 적용하고, 지정 온도까지 팬 정지
 - 스크롤 없는 컴팩트 UI, 트레이 메뉴, 종료 시 설정 복원
+- 배터리 잔량, 배터리 사용 시 PC 전체 방전 전력과 예상 남은 시간; 충전 중에는 충전 상태 표시
 
 ## 파일 하나로 실행 및 빠른 시작
 
-**[GitHub Releases 다운로드](https://github.com/svrforum/galaxy-book-helper/releases)** · 처음 사용자는 **v0.2.1-experimental Setup EXE** 하나를 받으세요. v0.2.0 Setup의 파일명 인코딩 오류를 수정했습니다. [설치·업데이트·제거 안내](packaging/FIRST-START.ko.md). 필요한 공식 PawnIO는 검증 후 다운로드하며, 팬 제어 시험용 드라이버와 공개 인증서는 Setup에 포함합니다. Microsoft 정식 서명 팬 드라이버는 아니며 새 PC 최초 설치 전체 경로는 미검증입니다.
+**[GitHub Releases 다운로드](https://github.com/svrforum/galaxy-book-helper/releases)** · 처음 사용자는 **v0.2.2-experimental Setup EXE** 하나를 받으세요. v0.2.0 Setup의 파일명 인코딩 오류를 수정했습니다. [설치·업데이트·제거 안내](packaging/FIRST-START.ko.md). 필요한 공식 PawnIO는 검증 후 다운로드하며, 팬 제어 시험용 드라이버와 공개 인증서는 Setup에 포함합니다. Microsoft 정식 서명 팬 드라이버는 아니며 새 PC 최초 설치 전체 경로는 미검증입니다.
 
 릴리즈의 단일 **GalaxyHelper EXE**에는 앱·진단 도구·PawnIO 모듈이 내장되어 있습니다. 압축을 풀거나 모듈 파일을 따로 관리할 필요 없이 EXE 하나를 실행하면 됩니다. 앱 업데이트 EXE는 기존 드라이버를 사용하며, 시험용 Setup은 팬 드라이버 설치도 안내합니다.
 
@@ -71,7 +72,7 @@ Windows x64와 .NET Framework 4.x의 C# 컴파일러를 사용합니다.
 
 ## 검증
 
-- 앱 오프라인 테스트 **45개**, 편집·프리셋 UI 테스트 및 자동 설정 UI 테스트
+- 앱 오프라인 테스트 **47개**, 편집·프리셋 UI 테스트 및 자동 설정 UI 테스트
 - 지속 정지 네이티브 정책 **46개**, 기존 한시 정지 **22개**, 일반 팬 정책 **14개**
 - 드라이버 정적 분석·INF·카탈로그 서명 검사
 - 화면 경계 검사, 0 RPM UI 미리보기; 매우 작은 작업 영역에서는 버튼 잘림 대신 스크롤 제공

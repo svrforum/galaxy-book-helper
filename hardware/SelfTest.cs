@@ -191,6 +191,7 @@ namespace GalaxyHardware
             passed.Add("500 arbitrary XY edits and whole-curve shifts preserve ordering and ranges");
             passed.AddRange(FanSetupSelfTests.WorkflowCases());
             passed.AddRange(FanStartupCheck.Tests());
+            passed.AddRange(BatteryMonitor.Tests());
             return new { Passed = passed.Count, Cases = passed, HardwareAccess = false, Scope = "Offline protocol and control-policy checks; no live hardware verification performed by this command" };
         }
     }
