@@ -22,7 +22,10 @@ namespace GalaxyHardware
                 foreach (ManagementObject value in values) using (value) return Convert.ToString(value[field]);
             throw new InvalidOperationException("Missing hardware identity");
         }
-        internal static string Boot() { return ReadWmi("Win32_OperatingSystem", "LastBootUpTime"); }
+        // This process cannot survive a Windows reboot. Avoid repeating WMI during readiness checks.
+        static readonly object bootGate=new object();
+        static string bootTime;
+        internal static string Boot() { lock(bootGate){if(bootTime==null)bootTime=ReadWmi("Win32_OperatingSystem", "LastBootUpTime");return bootTime;} }
         internal static void CheckMachine()
         {
             using (var key = Registry.LocalMachine.OpenSubKey(@"HARDWARE\DESCRIPTION\System\CentralProcessor\0"))

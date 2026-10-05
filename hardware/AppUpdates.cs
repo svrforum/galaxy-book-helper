@@ -14,7 +14,7 @@ namespace GalaxyHardware
 {
     static class AppUpdates
     {
-        internal const string Current = "v0.2.3-experimental";
+        internal const string Current = "v0.2.4-experimental";
         const string DownloadRoot = "https://github.com/svrforum/galaxy-book-helper/releases/download/";
         internal sealed class Asset { public string name, browser_download_url, digest; public long size; }
         internal sealed class Release { public string tag_name; public bool draft; public Asset[] assets; }
@@ -77,13 +77,13 @@ namespace GalaxyHardware
         }
         internal static IEnumerable<string> Tests()
         {
-            if(VersionOf(Current)!=new Version(0,2,3) || VersionOf("v0.2.4-experimental/junk")!=null)throw new Exception("Version parser failed");
+            if(VersionOf(Current)!=new Version(0,2,4) || VersionOf("v0.2.4-experimental/junk")!=null)throw new Exception("Version parser failed");
             yield return "update version parser rejects malformed tags";
-            string name="GalaxyHelper-v0.2.4-experimental-windows-x64.exe";
-            var asset=new Asset {name=name,browser_download_url=DownloadRoot+"v0.2.4-experimental/"+name,size=2048,digest="sha256:"+new string('a',64)};
-            var release=new Release {tag_name="v0.2.4-experimental",assets=new[]{asset}};var serializer=new JavaScriptSerializer();
+            string name="GalaxyHelper-v0.2.5-experimental-windows-x64.exe";
+            var asset=new Asset {name=name,browser_download_url=DownloadRoot+"v0.2.5-experimental/"+name,size=2048,digest="sha256:"+new string('a',64)};
+            var release=new Release {tag_name="v0.2.5-experimental",assets=new[]{asset}};var serializer=new JavaScriptSerializer();
             Func<string> json=()=>serializer.Serialize(new[]{release});
-            if(Select(json(),Current)==null || Select(json(),"v0.2.4-experimental")!=null)throw new Exception("Update ordering failed");
+            if(Select(json(),Current)==null || Select(json(),"v0.2.5-experimental")!=null)throw new Exception("Update ordering failed");
             release.draft=true;if(Select(json(),Current)!=null)throw new Exception("Draft update accepted");release.draft=false;
             asset.browser_download_url="https://example.com/evil.exe";if(Select(json(),Current)!=null)throw new Exception("External update accepted");
             asset.browser_download_url=DownloadRoot+release.tag_name+"/"+name;asset.digest=null;if(Select(json(),Current)!=null)throw new Exception("Missing hash accepted");

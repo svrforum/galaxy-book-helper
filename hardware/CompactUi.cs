@@ -66,7 +66,7 @@ namespace GalaxyHardware
             quickMenu.Opening+=delegate {PopulateQuickMenu();};tray.MouseClick+=delegate(object sender,MouseEventArgs e){if(e.Button==MouseButtons.Left){if(Visible)Hide();else if((DateTime.UtcNow-lastDismiss).TotalMilliseconds>250)ShowPanel();}};
             Resize+=delegate {if(WindowState==FormWindowState.Minimized)Hide();};FormClosing+=ClosingForm;
         }
-        void ShowPanel() { dismissTimer.Stop(); PositionPanel(); Show(); WindowState=FormWindowState.Normal; Activate(); }
+        void ShowPanel() { dismissTimer.Stop(); PositionPanel(); Show(); WindowState=FormWindowState.Normal; Activate(); if(!smokeMode)RefreshReadings(); }
         void EditCurve() {ShowPanel(); if(inlineGraph!=null) {curveDetails.Visible=true;FitWithoutScroll((FlowLayoutPanel)Controls[0]);PositionPanel();inlineGraph.Focus();((ScrollableControl)inlineGraph.Parent).ScrollControlIntoView(inlineGraph);} }
         void StartCurve()
         {
@@ -90,7 +90,7 @@ namespace GalaxyHardware
         }
         void PopulateQuickMenu()
         {
-            quickMenu.Items.Clear();
+            while(quickMenu.Items.Count>0){var old=quickMenu.Items[0];quickMenu.Items.RemoveAt(0);old.Dispose();}
             quickMenu.Items.Add("Galaxy Helper  ·  "+measured.Text).Enabled=false;
             quickMenu.Items.Add("패널 열기",null,delegate { ShowPanel(); });
             var power=new ToolStripMenuItem("전력 제한"); quickMenu.Items.Add(power);
@@ -115,6 +115,6 @@ namespace GalaxyHardware
             quickMenu.Items.Add("종료 및 설정 복원",null,delegate { exitRequested=true; Close(); });
         }
         void UpdateQuickState()
-        { string text="Galaxy Helper · "+measured.Text+" · "+(fanClient==null?"팬 자동":"팬 수동"); tray.Text=text.Length>63?text.Substring(0,63):text; }
+        { string text="Galaxy Helper · "+measured.Text+" · "+(fanClient==null?"팬 자동":"팬 수동");text=text.Length>63?text.Substring(0,63):text;if(tray.Text!=text)tray.Text=text; }
     }
 }

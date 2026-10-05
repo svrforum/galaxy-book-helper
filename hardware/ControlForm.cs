@@ -13,13 +13,10 @@ namespace GalaxyHardware
     sealed partial class ControlForm : Form
     {
         readonly PawnDevice msr;
-        readonly PawnDevice mmio;
         readonly ulong units;
         readonly NumericUpDown pl1 = new NumericUpDown();
         readonly NumericUpDown pl2 = new NumericUpDown();
         readonly Label measured = new Label();
-        readonly Label limits = new Label();
-        readonly Label mmioLimits = new Label();
         readonly Label status = new SingleLineStatus();
         readonly Label fanReading = new Label();
         readonly Button fanRefresh = new SoftButton();
@@ -63,7 +60,6 @@ namespace GalaxyHardware
             try
             {
                 units = msr.ReadMsr(0x606);
-                try { mmio = new PawnDevice("IntelMCHBAR"); } catch { }
                 BuildCompactUi();
                 energy = (uint)msr.ReadMsr(0x611); sampleClock.Start();
                 status.Text = File.Exists(Program.Journal) ? "이전 복원 기록이 있습니다. 복원 후 새 제한을 적용하세요." : "전력 제한 대기";
@@ -86,7 +82,7 @@ namespace GalaxyHardware
                 FanButtons();
                 timer.Interval = 1000; timer.Tick += delegate { RefreshReadings(); }; timer.Start();
             }
-            catch { if (mmio != null) mmio.Dispose(); msr.Dispose(); throw; }
+            catch { msr.Dispose(); throw; }
         }
         static void Add(FlowLayoutPanel stack, Control item, int height) { item.Size = new Size(575, height); item.Margin = new Padding(0, 2, 0, 4); stack.Controls.Add(item); }
         static void Configure(NumericUpDown input, decimal initial) { input.Minimum = 5; input.Maximum = 80; input.DecimalPlaces = 1; input.Increment = 0.5M; input.Value = initial; input.Width = 90; input.ForeColor = Color.Black; }
@@ -175,16 +171,18 @@ namespace GalaxyHardware
             if (fanClient==null) return;
             try {
                 var state=fanClient.Heartbeat(fanStep);
-                fanReading.Text=String.Format("{0:N0} RPM     /     {1:N0} RPM",state.Fan1Rpm,state.Fan2Rpm,state.TemperatureC,state.SampleUtc.ToLocalTime());
-                fanControlStatus.Text=fanGoal.HasValue ? "목표 " + fanGoal + " RPM · 실제 속도에 맞춰 조절 중" : DescribeFanStep(fanStep)+" · 자동 제어로 복귀하면 해제됩니다.";
+                if(Visible) {
+                    fanReading.Text=String.Format("{0:N0} RPM     /     {1:N0} RPM",state.Fan1Rpm,state.Fan2Rpm);
+                    fanControlStatus.Text=fanGoal.HasValue ? "목표 " + fanGoal + " RPM · 실제 속도에 맞춰 조절 중" : DescribeFanStep(fanStep)+" · 자동 제어로 복귀하면 해제됩니다.";
+                }
                 if (fanGoal.HasValue) {
                     fanStep=fanCapPolicy.Observe(state,DateTime.UtcNow);
-                    if (fanCapPolicy.Settling(DateTime.UtcNow)) fanControlStatus.Text+=" · 안정화 중";
+                    if (Visible && fanCapPolicy.Settling(DateTime.UtcNow)) fanControlStatus.Text+=" · 안정화 중";
                 }
                 if(fanCurvePolicy!=null) {
                     fanStep=fanCurvePolicy.Observe(state,DateTime.UtcNow);
                     int supported=fanStep==0?0:Math.Max(fanCalibration.Entries[fanStep-1].Fan1Peak,fanCalibration.Entries[fanStep-1].Fan2Peak);
-                    fanControlStatus.Text="커브 적용 중 · 요청 "+fanCurvePolicy.Target+" → 지원 약 "+supported+" RPM";
+                    if(Visible)fanControlStatus.Text="커브 적용 중 · 요청 "+fanCurvePolicy.Target+" → 지원 약 "+supported+" RPM";
                 }
             } catch (Exception ex) { StopFan(); fanControlStatus.Text=ex.Message + "\n자동 복귀 요청 · 원인 확인 후 다시 적용하세요."; FanButtons(); }
         }
@@ -235,7 +233,7 @@ namespace GalaxyHardware
             try
             {
                 ulong raw = msr.ReadMsr(0x610); int temperature = Program.Temperature(msr);
-                if(inlineGraph!=null) {inlineGraph.CurrentTemperature=temperature;inlineGraph.Invalidate();}
+                if(inlineGraph!=null && Visible && inlineGraph.CurrentTemperature!=temperature) {inlineGraph.CurrentTemperature=temperature;inlineGraph.Invalidate();}
                 uint current = (uint)msr.ReadMsr(0x611); double elapsed = sampleClock.Elapsed.TotalSeconds;
                 if (elapsed >= 0.25)
                 {
@@ -243,13 +241,6 @@ namespace GalaxyHardware
                     measured.Text = String.Format("CPU {0:F1} W · {1} °C", watts, temperature);
                 }
                 else measured.Text = "센서 초기화 중…";
-                limits.Text = String.Format("MSR 현재 제한     PL1 {0:F1} W  /  PL2 {1:F1} W\n펌웨어 잠금: {2}", Rapl.Pl1(raw, units), Rapl.Pl2(raw, units), Rapl.Locked(raw) ? "잠김" : "해제");
-                if (mmio != null)
-                {
-                    try { ulong m = mmio.ReadMchbar(0x59A0), u = mmio.ReadMchbar(0x5938); mmioLimits.Text = String.Format("MMIO 제한 (조회)   PL1 {0:F1} W  /  PL2 {1:F1} W", Rapl.Pl1(m, u), Rapl.Pl2(m, u)); }
-                    catch (Exception ex) { mmioLimits.Text = "MMIO 조회 실패: " + ex.Message; }
-                }
-                else mmioLimits.Text = "MMIO 조회 인터페이스를 열지 못했습니다.";
                 readingHealthy = !Rapl.Locked(raw) && (raw & (1UL << 15)) != 0 && (raw & (1UL << 47)) != 0;
                 if (ownsSetting && (raw & Rapl.PowerMask) != (expected & Rapl.PowerMask))
                     status.Text = "다른 프로그램/펌웨어가 제한을 변경했습니다. 자동 재적용하지 않습니다.\n복원 기록을 남겼습니다. 복원 시 현재값을 다시 검사합니다.";
@@ -263,7 +254,7 @@ namespace GalaxyHardware
             }
             Buttons();
             UpdateQuickState();
-            if(fanReady && fanClient==null && !fanBusy && (DateTime.UtcNow-lastFanPoll).TotalSeconds>=2) { lastFanPoll=DateTime.UtcNow; RefreshFan(true); }
+            if(Visible && fanReady && fanClient==null && !fanBusy && (DateTime.UtcNow-lastFanPoll).TotalSeconds>=2) { lastFanPoll=DateTime.UtcNow; RefreshFan(true); }
         }
         void ApplyEditedPower()
         {
@@ -412,7 +403,7 @@ namespace GalaxyHardware
             {
                 hardwareDisposed = true; StopFan(); fanTimer.Dispose(); timer.Dispose(); tray.Dispose();
                 brightnessDelay.Dispose();batteryTimer.Dispose();updateTimer.Dispose();curveEditDelay.Dispose();detailsTip.Dispose();dismissTimer.Dispose();if(panelIcon!=null)panelIcon.Dispose();
-                if (mmio != null) mmio.Dispose(); if(msr!=null) msr.Dispose();
+                if(msr!=null) msr.Dispose();
             }
             base.Dispose(disposing);
         }
