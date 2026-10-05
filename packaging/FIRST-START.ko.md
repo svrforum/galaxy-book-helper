@@ -1,10 +1,10 @@
-# 처음 실행하기 · v0.2.2-experimental
+# 처음 실행하기 · v0.2.3-experimental
 
 이 버전은 Galaxy Book6 Pro **PAMB / Core Ultra X7 358H / BIOS PAMB.1.5.74.371** 전용 시험판입니다. 다른 모델·BIOS는 지원하지 않습니다.
 
 ## 다운로드
 
-GitHub Releases의 `GalaxyHelper-v0.2.2-experimental-Setup.exe` 하나를 받으세요.
+GitHub Releases의 `GalaxyHelper-v0.2.3-experimental-Setup.exe` 하나를 받으세요.
 수동 압축 해제나 개발 도구 설치는 필요 없습니다. 앱 EXE는 미서명이므로 Windows에서 게시자를 확인하지 못했다는 경고가 나올 수 있습니다. 조직 정책이 실행을 차단하면 관리자에게 문의하세요.
 
 1. EXE를 실행하고 Windows 관리자 권한 요청을 확인합니다.

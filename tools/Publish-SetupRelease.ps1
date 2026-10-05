@@ -1,4 +1,4 @@
-param([string]$Tag='v0.2.2-experimental')
+param([string]$Tag='v0.2.3-experimental')
 $ErrorActionPreference='Stop'
 if($Tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+-experimental$'){throw 'Invalid experimental release tag.'}
 $root=Split-Path $PSScriptRoot -Parent

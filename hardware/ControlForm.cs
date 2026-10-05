@@ -385,6 +385,7 @@ namespace GalaxyHardware
         void ClosingForm(object sender, FormClosingEventArgs e)
         {
             if(setupRunning) { e.Cancel=e.CloseReason!=CloseReason.WindowsShutDown;return; }
+            if(updateBusy && exitRequested && e.CloseReason==CloseReason.UserClosing){e.Cancel=true;NotifyError("업데이트 다운로드 완료 후 종료해 주세요.");return;}
             if(e.CloseReason==CloseReason.UserClosing && !exitRequested && !smokeMode) { e.Cancel=true; Hide(); return; }
             StopFan();
             if (ownsSetting)
@@ -410,7 +411,7 @@ namespace GalaxyHardware
             if (disposing && !hardwareDisposed)
             {
                 hardwareDisposed = true; StopFan(); fanTimer.Dispose(); timer.Dispose(); tray.Dispose();
-                brightnessDelay.Dispose();batteryTimer.Dispose();curveEditDelay.Dispose();detailsTip.Dispose();dismissTimer.Dispose();if(panelIcon!=null)panelIcon.Dispose();
+                brightnessDelay.Dispose();batteryTimer.Dispose();updateTimer.Dispose();curveEditDelay.Dispose();detailsTip.Dispose();dismissTimer.Dispose();if(panelIcon!=null)panelIcon.Dispose();
                 if (mmio != null) mmio.Dispose(); if(msr!=null) msr.Dispose();
             }
             base.Dispose(disposing);
@@ -425,6 +426,7 @@ namespace GalaxyHardware
             try
             {
                 if(args.Length==2 && args[0]=="--battery-check"){File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(new BatteryMonitor().Read()));return 0;}
+                if(args.Length==2 && args[0]=="--update-check"){File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(AppUpdates.Check()));return 0;}
                 if(args.Length==2 && args[0]=="--display-save-current"){File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(DisplayRefresh.SaveCurrent()));return 0;}
                 if(args.Length==2 && args[0]=="--display-check"){File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(DisplayRefresh.Inspect()));return 0;}
                 if(args.Length==2 && args[0]=="--setup-self-test") {File.WriteAllText(args[1],new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(FanSetupSelfTests.Run()));return 0;}
@@ -459,7 +461,7 @@ namespace GalaxyHardware
                     {
                         using (var form = new ControlForm())
                         {
-                            form.smokeMode=args.Length!=0 && !(args.Length==1 && (args[0]=="--show-zero"||args[0]=="--startup"));
+                            form.smokeMode=args.Length!=0 && !(args.Length==1 && (args[0]=="--show-zero"||args[0]=="--startup"||args[0]=="--updated"));
                             if (args.Length == 2 && (args[0] == "--ui-smoke" || args[0] == "--ui-monitor-smoke"))
                             {
                                 using (var timer = new System.Windows.Forms.Timer { Interval = args[0]=="--ui-monitor-smoke" ? 30000 : 2500 })
@@ -472,6 +474,7 @@ namespace GalaxyHardware
                             else if (args.Length == 2 && args[0] == "--ui-curve-smoke") { form.RunControlSmoke(args[1],true); Application.Run(form); }
                             else if (args.Length == 2 && args[0] == "--ui-zero-smoke") { form.RunControlSmoke(args[1],true,true); Application.Run(form); }
                             else if (args.Length==1 && args[0]=="--startup") {form.ResumeAtLogon();Application.Run(form);}
+                            else if(args.Length==1 && args[0]=="--updated") {try{if(StartupTask.Enabled())StartupTask.Set(true);}catch(Exception ex){form.NotifyStartupUpdate(ex.Message);}form.ResumeAtLogon(false);form.Shown+=delegate {form.BeginInvoke((Action)delegate{form.Hide();});};Application.Run(form);}
                             else if(args.Length==2 && args[0]=="--resume-check"){form.VerifyResume(args[1]);Application.Run(form);}
                             else if (args.Length == 0) {try{if(StartupTask.Enabled())StartupTask.Set(true);}catch(Exception ex){form.NotifyStartupUpdate(ex.Message);}form.ResumeAtLogon(false);Application.Run(form);}
                             else if (args.Length == 1 && args[0]=="--show-zero") {form.PreviewZeroCurve();Application.Run(form);}

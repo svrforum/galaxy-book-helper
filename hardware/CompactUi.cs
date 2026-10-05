@@ -62,7 +62,7 @@ namespace GalaxyHardware
             apply.Click+=delegate {ApplyEditedPower();};restore.Click+=delegate {try {Restore();}catch(Exception ex){NotifyError(ex.Message);}};
             fanApply.Click+=delegate {StartFan(false);};fanCap.Click+=delegate {StartFan(true);};fanAuto.Click+=delegate {RestoreFan();};fanRefresh.Click+=delegate {RefreshFan();};
             fanTimer.Interval=1000;fanTimer.Tick+=delegate {TickFan();};
-            SetupTrayPanel(header);DecorateButtons(stack);tray.Text="Galaxy Helper";tray.ContextMenuStrip=quickMenu;tray.Visible=true;
+            SetupTrayPanel(header);SetupUpdates();DecorateButtons(stack);tray.Text="Galaxy Helper";tray.ContextMenuStrip=quickMenu;tray.Visible=true;
             quickMenu.Opening+=delegate {PopulateQuickMenu();};tray.MouseClick+=delegate(object sender,MouseEventArgs e){if(e.Button==MouseButtons.Left){if(Visible)Hide();else if((DateTime.UtcNow-lastDismiss).TotalMilliseconds>250)ShowPanel();}};
             Resize+=delegate {if(WindowState==FormWindowState.Minimized)Hide();};FormClosing+=ClosingForm;
         }
@@ -111,6 +111,7 @@ namespace GalaxyHardware
             quickMenu.Items.Add("정밀 팬 보정 및 검증…",null,delegate {OpenFanSetup();}).Enabled=fanReady&&!fanBusy&&!busy;
             quickMenu.Items.Add(new ToolStripSeparator());
             AddStartupMenu();
+            AddUpdateMenu();
             quickMenu.Items.Add("종료 및 설정 복원",null,delegate { exitRequested=true; Close(); });
         }
         void UpdateQuickState()

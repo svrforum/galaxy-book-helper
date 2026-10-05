@@ -192,6 +192,7 @@ namespace GalaxyHardware
             passed.AddRange(FanSetupSelfTests.WorkflowCases());
             passed.AddRange(FanStartupCheck.Tests());
             passed.AddRange(BatteryMonitor.Tests());
+            passed.AddRange(AppUpdates.Tests());
             return new { Passed = passed.Count, Cases = passed, HardwareAccess = false, Scope = "Offline protocol and control-policy checks; no live hardware verification performed by this command" };
         }
     }
